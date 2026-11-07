@@ -36,3 +36,23 @@ def test_numeric(out, ok):
 
 def test_numeric_thousands_separator():
     assert grade({"grader": "numeric", "answer": "1739817.0"}, "ANSWER: 1,739,817")
+
+
+S = {"grader": "answer_set", "answer": "Sharqia|Sharkia|Sharqia Governorate|الشرقية|محافظة الشرقية"}
+
+
+@pytest.mark.parametrize("out,ok", [
+    ("reasoning\nANSWER: Sharqia", True),
+    ("ANSWER: **Sharkia**", True),           # markdown bold
+    ("ANSWER: sharqia.", True),              # case and trailing dot
+    ("ANSWER: الشرقيه", True),               # teh marbuta written as heh
+    ("ANSWER: الشَّرقية", True),              # diacritics
+    ("ANSWER: Ismailia", False),             # the wrong governorate
+    ("ANSWER: Ismailia, not Sharqia", False),  # names the right one inside a wrong answer
+    ("ANSWER: Sharqia or Dakahlia", False),  # hedged
+    ("Sharqia", False),                      # no ANSWER line
+    ("ANSWER: Sharqia\nANSWER: Gharbia", False),  # last ANSWER line counts
+    ("ANSWER: Gharbia\nANSWER: Sharqia", True),
+])
+def test_answer_set(out, ok):
+    assert grade(S, out) is ok

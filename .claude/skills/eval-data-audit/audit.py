@@ -50,17 +50,24 @@ def audit_tasks(tasks):
         if "TODO" in json.dumps(t):
             blockers.append(f"{tid}: TODO still in task")
         # Known-good check: the grader must accept the reference answer itself.
-        ref = str(t["answer"])
-        if t["grader"] != "regex" and not (grade(t, ref) or grade(t, f"ANSWER: {ref}")):
-            blockers.append(f"{tid}: grader rejects its own reference answer")
-        # Leak check: a short answer sitting verbatim in the prompt is a giveaway.
-        a = norm(t["answer"])
-        if t["grader"] != "regex" and a and re.search(rf"\b{re.escape(a)}\b", norm(t["prompt"])):
-            warnings.append(f"{tid}: reference answer appears in prompt (leak?)")
+        # `answer_set` answers are accepted variants joined by "|": every one must pass.
+        variants = str(t["answer"]).split("|") if t["grader"] == "answer_set" else [str(t["answer"])]
+        for ref in variants:
+            if t["grader"] != "regex" and not (grade(t, ref) or grade(t, f"ANSWER: {ref}")):
+                blockers.append(f"{tid}: grader rejects its own reference answer '{ref}'")
+        # Leak check: a non-trivial answer sitting verbatim in the prompt is a giveaway
+        # (bare 1-2 digit numbers match list numbering, so they are skipped).
+        for ref in variants:
+            a = norm(ref)
+            if t["grader"] != "regex" and a and not (a.isdigit() and len(a) < 3) \
+                    and re.search(rf"\b{re.escape(a)}\b", norm(t["prompt"])):
+                warnings.append(f"{tid}: reference answer '{ref}' appears in prompt (leak?)")
+                break
         if not t.get("metadata"):
             warnings.append(f"{tid}: no metadata (domain/difficulty/source)")
-    n = len(tasks)
-    stats.append(f"- tasks: {n} (judges want 5-10)")
+    # Bilingual evals write one task per language; judges count the fact once (`metadata.pair`).
+    n = len({(t.get("metadata") or {}).get("pair", t.get("id")) for t in tasks})
+    stats.append(f"- tasks: {n} (judges want 5-10); rows: {len(tasks)}")
     if not 5 <= n <= 10:
         warnings.append(f"task count {n} outside 5-10")
     stats.append("- graders: " + ", ".join(f"{k}={v}" for k, v in collections.Counter(t.get("grader") for t in tasks).items()))
@@ -119,7 +126,7 @@ def selftest():
     b, w, _ = audit_tasks([good, leak, broken, dict(good)])
     assert any("c: grader rejects" in x for x in b), b
     assert any("a: duplicate id" in x for x in b), b
-    assert any("b: reference answer appears" in x for x in w), w
+    assert any("b: reference answer" in x and "appears in prompt" in x for x in w), w
     assert not any(x.startswith("b:") for x in b), b
     print("selftest ok")
 
