@@ -67,8 +67,8 @@ Keep the repo small and flat. Everything a judge needs is reachable from this RE
 │   └── <model>__<date>/
 ├── docs/
 │   └── failure_analysis.md  # where and why models fail, with examples
-└── scripts/               # optional helpers (data generation, packaging the ZIP)
-    └── make_zip.sh
+└── scripts/               # helpers
+    └── make_zip.py        # builds dist/eval.zip, fails if over 50 MB
 ```
 
 ### Conventions
@@ -83,16 +83,27 @@ Keep the repo small and flat. Everything a judge needs is reachable from this RE
 
 ## Delivery plan
 
-Deadline is Mon 9 Nov 2026, 07:15 Cairo. Submit Sun 8 Nov evening, not Monday morning.
+Deadline is Mon 9 Nov 2026, 07:15 Cairo. **Plan: finish and submit everything today (Sat 7 Nov).** Sun 8 Nov is the safety buffer and resubmitting is allowed until the deadline.
 
-**Sat 7 Nov**
+Suggested time blocks for today:
+
+| Block | Steps |
+|-------|-------|
+| 1. Setup and idea | 1 to 2 |
+| 2. Tasks, grader, runner | 3 to 5 |
+| 3. Model runs and failure check | 6 to 7 |
+| 4. Docs and clean-room test | 8 to 9 |
+| 5. Video, ZIP, submit | 10 to 13 |
+
+Cut scope, not steps: 5 solid tasks beat 10 shaky ones.
+
+**Steps**
 1. **Read the Instructions tab** on HackerRank: format, rubric, reference examples, and what Q1 (upload) and Q2 (subjective) ask. This decides the folder layout.
 2. **Pick one narrow topic** in a domain you know, where frontier models really fail. Not a trick question. Write the idea in 2 lines and check it has a clear correct answer.
 3. **Draft 5 to 10 tasks** in `data/tasks.jsonl` (id, prompt, expected answer or rubric, metadata). Public or synthetic data only.
 4. **Build the grader.** Prefer deterministic checks. Add `tests/test_grader.py` with known-good and known-bad answers, and confirm wrong answers are rejected.
 5. **Write the runner.** Load tasks, call the model through an OpenAI-compatible client (OpenRouter), save raw outputs. Temperature 0, record model id and date.
 
-**Sun 8 Nov**
 6. **Run on models.** Free model first to debug, then at least one frontier model. API cost is yours.
 7. **Check the failures.** Confirm models fail for the intended reason, not a bad task or grader. Fix and rerun if not. Write `docs/failure_analysis.md` with examples.
 8. **Finish this README.** Fill every `TODO`: what it tests, who it is for, why it matters, run commands, runtime, cost, expected results.
@@ -100,7 +111,6 @@ Deadline is Mon 9 Nov 2026, 07:15 Cairo. Submit Sun 8 Nov evening, not Monday mo
 10. **Record the video** (5 min max): problem, how it works, how it is graded, what it reveals. Upload to YouTube, Drive, Loom or Vimeo. Open the link in an incognito window and check the audio.
 11. **Build the ZIP.** Code only, under 50 MB, no `.env`, keys, videos or `.venv`. Open it and scan for secrets.
 
-**Submit (Sun 8 Nov evening)**
 12. **Upload the ZIP**, paste the video link, fill in the short description. Run the checklist below.
 13. **Click Submit only after everything is uploaded.** It is final.
 

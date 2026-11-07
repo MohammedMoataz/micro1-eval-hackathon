@@ -1,0 +1,2 @@
+{"id": "example-001", "prompt": "TODO replace: question with one defensible answer. Reply with just the answer.", "answer": "42", "grader": "numeric", "metadata": {"difficulty": "TODO", "domain": "TODO"}}
+{"id": "example-002", "prompt": "TODO replace: question whose answer is a fixed string. Reply with just the answer.", "answer": "paris", "grader": "exact", "metadata": {"difficulty": "TODO", "domain": "TODO"}}
