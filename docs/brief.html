@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>micro1 Eval Hackathon: Full Brief and Delivery Plan</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#5c6370;--card:#f4f6f8;--acc:#0f766e;--warn:#b45309;--bd:#d9dee3}
+@media(prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--mut:#a0a7b0;--card:#1e2327;--acc:#5eead4;--warn:#fbbf24;--bd:#333b42}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:780px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.55rem;margin:0 0 4px}h2{font-size:1.15rem;margin:32px 0 8px;border-bottom:1px solid var(--bd);padding-bottom:4px}
+.sub{color:var(--mut);margin:0 0 16px;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px 16px;margin:10px 0;overflow-wrap:anywhere}
+.big{font-size:1.6rem;font-weight:700;color:var(--acc)}
+.warn{color:var(--warn);font-weight:600}
+table{width:100%;border-collapse:collapse;display:block;overflow-x:auto}
+td,th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);vertical-align:top}
+a{color:var(--acc)}code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:.9em}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.tag{display:inline-block;font-size:.75rem;background:var(--acc);color:var(--bg);border-radius:4px;padding:1px 6px;margin-right:6px}
+label{display:block;cursor:pointer}
+</style></head><body><main>
+
+<h1>micro1 Eval Hackathon: Full Brief and Delivery Plan</h1>
+<p class="sub">Source: HackerRank test (Instructions, Q1, Q2), participant guide PDF, official FAQ. All times Cairo (EET, UTC+2). Scanned 7 Nov 2026.</p>
+
+<div class="card"><div class="sub" style="margin:0">Time left until submissions close</div>
+<div class="big" id="cd">...</div>
+<div class="sub" style="margin:4px 0 0">Closes <b class="warn">Mon 9 Nov 2026, 07:15 Cairo</b> (05:15 GMT, Sun 8 Nov 9:15 PM PT). Resubmitting is allowed until then; only the latest complete submission counts.</div></div>
+
+<h2>The challenge</h2>
+<div class="card">Solo, free, online. Find one gap in a field you know well, where frontier AI models fail but an expert succeeds, and turn it into an <b>eval</b>: tasks plus a reliable grader. It is not a build-an-agent contest and not model training. You choose the domain. Recommended 5 to 10 well-designed tasks; quality over quantity. Single-turn or agentic both welcome.</div>
+
+<h2>What the test asks for</h2>
+<table>
+<tr><th>Q1 Eval Submission</th><td>Upload <b>one ZIP</b>, max 50 MB, not password-protected, with <code>README.md</code> at its root.</td></tr>
+<tr><th>Q2 Video Walkthrough Link</th><td>Paste a link in the editor. 5 minutes max. YouTube (public or unlisted), Drive, Loom, Vimeo. Must open with no login or access request, and play with audio. Do not upload the video itself.</td></tr>
+<tr><th>Short description</th><td>A few sentences: domain, the gap, number of tasks, models tested, headline finding. Must be in the README. The Q1 page also mentions a field "below", which I did not see, so check at submit time.</td></tr>
+</table>
+
+<h2>Judging rubric (100 points)</h2>
+<table>
+<tr><th>Criterion</th><th>Pts</th><th>Ask yourself</th></tr>
+<tr><td>Task design</td><td>20</td><td>Would two experts reach the same verdict? Each task has a reference solution; everything graded is stated in the task.</td></tr>
+<tr><td>Grader reliability</td><td>20</td><td>Accepts every reference solution, rejects deliberately wrong answers. Any LLM judge uses specific rubric items and is checked against expert grading.</td></tr>
+<tr><td>Real-world relevance</td><td>15</td><td>Would a practitioner care? README says who relies on this work and what failure costs.</td></tr>
+<tr><td>Evidence of model limitations</td><td>15</td><td>Frontier models, several trials per task, a spread across models, transcripts backing each failure explanation.</td></tr>
+<tr><td>Reproducibility</td><td>15</td><td>A judge runs it from a clean environment using only the README: commands, versions, data, runtime, cost.</td></tr>
+<tr><td>Human expertise and review</td><td>10</td><td>You checked every task, answer and grading rule. README says how AI tools were used and reviewed. No generic tasks or filler.</td></tr>
+<tr><td>Insight / hot take</td><td>5</td><td>A clear, unexpected lesson about where AI falls short.</td></tr>
+</table>
+<p class="sub">Scoring only happens after eligibility, completeness, integrity and reproducibility checks pass.</p>
+
+<h2>README must contain</h2>
+<ol>
+<li>Short description</li>
+<li>Video walkthrough link</li>
+<li>Domain and expertise</li>
+<li>What it tests and why it matters (who it is for)</li>
+<li>Setup and run instructions: clean environment, one command where possible, how to supply API keys, runtime and cost</li>
+<li>Models tested and results: exact model IDs or versions, run date, settings (temperature, trials per task), scores</li>
+<li>Failure analysis: where and why models fail</li>
+<li>Prior work and sources: anything that existed before, any benchmarks or datasets used</li>
+</ol>
+<p class="sub">The guide also suggests: task overview, how you validated the grader, representative transcripts, main failure mode and hot take, and an "AI use" section.</p>
+
+<h2>Also required inside the ZIP</h2>
+<ul>
+<li><b>Tasks:</b> inputs and expected outputs or grading criteria, including edge cases and judgment calls.</li>
+<li><b>Scoring logic:</b> automated grading, a rubric, or both, with how scores are calculated. An AI grader must be named, with its prompt and a reliability check.</li>
+<li><b>Results:</b> raw model outputs and scores from your own run.</li>
+<li><b>Dependencies:</b> a requirements file plus <code>.env.example</code> (key names only).</li>
+</ul>
+<div class="card"><b>Do not include:</b> videos or large datasets (host and link them), confidential employer or client data, private personal information, third-party material you cannot share, API keys or passwords.</div>
+
+<h2>What makes a strong eval (guide)</h2>
+<ul>
+<li>Realistic professional tasks, not trick questions, riddles or letter counting. You can explain why it is hard before running any model.</li>
+<li>Grade the outcome, not the steps. Prefer code-based graders (exact match, numeric tolerance, regex, schema, unit tests). Use partial credit for multi-part answers.</li>
+<li>Run 3 to 5 trials per task. Report pass@k and pass^k (consistency), and the spread.</li>
+<li>Sanity checks: 0% everywhere usually means a broken task or grader; a small model beating a frontier model means look for ambiguity; if the best model scores about 100%, there is no headroom.</li>
+<li>Keep reference answers away from the model. Make sure an output cannot pass by accident.</li>
+<li>Read the transcripts, especially failures. Did the model err, or did your grader reject a valid answer?</li>
+<li>Do not pick tasks only because one model failed them. Pick what an expert judges hard, then confirm with models.</li>
+</ul>
+
+<h2>Delivery plan: finish everything today (Sat 7 Nov)</h2>
+<p class="sub">Sun 8 Nov is the safety buffer. Cut scope, not steps: 5 solid tasks beat 10 shaky ones. Tick as you go (kept in this browser only).</p>
+<div class="card" id="steps">
+<b>Block 1: Idea</b>
+<label><input type="checkbox"> 1. Pick one narrow domain and gap. Write it in 2 lines. Check two experts would agree on answers.</label>
+<b style="display:block;margin-top:10px">Block 2: Build</b>
+<label><input type="checkbox"> 2. Draft 5 to 10 tasks in <code>data/tasks.jsonl</code> (prompt states everything graded). Public or synthetic data only.</label>
+<label><input type="checkbox"> 3. Write a reference solution per task.</label>
+<label><input type="checkbox"> 4. Build the grader. Test it: every reference passes, deliberately wrong answers fail.</label>
+<label><input type="checkbox"> 5. Extend the runner for 3 to 5 trials per task, save transcripts, report pass rate and pass^k.</label>
+<b style="display:block;margin-top:10px">Block 3: Run</b>
+<label><input type="checkbox"> 6. Run a free OpenRouter model to debug, then at least one frontier model (own API cost). Record exact model IDs, date, temperature.</label>
+<label><input type="checkbox"> 7. Read the failing transcripts. Fix bad tasks or grader bugs and rerun. Write <code>docs/failure_analysis.md</code>.</label>
+<b style="display:block;margin-top:10px">Block 4: Docs and test</b>
+<label><input type="checkbox"> 8. Finish the README: all required sections, results table, AI-use note, hot take, video link placeholder.</label>
+<label><input type="checkbox"> 9. Clean-room test: fresh clone, new venv, follow only the README. Fix what breaks.</label>
+<b style="display:block;margin-top:10px">Block 5: Ship</b>
+<label><input type="checkbox"> 10. Record the video (5 min max): problem and why it matters (about 1 min), a task and its grading (1.5), results and 1 to 2 failure transcripts (2), takeaway (0.5). Upload, test the link in an incognito window with audio.</label>
+<label><input type="checkbox"> 11. Put the video link and short description into the README. Build the ZIP with <code>python scripts/make_zip.py</code>. Open it and scan for keys.</label>
+<label><input type="checkbox"> 12. On HackerRank: upload the ZIP in Q1, paste the video link in Q2, accept the Participant Agreement, fill the description field if present.</label>
+<label><input type="checkbox"> 13. Run the checklist below, then click Save &amp; Proceed and Submit. Submitting is final and ends access to the link.</label>
+</div>
+
+<h2>Pre-submission checklist (guide)</h2>
+<ul>
+<li>Every task has a reference solution that passes its grader</li>
+<li>Deliberately wrong answers fail the grader</li>
+<li>Everything the grader checks is stated in the task</li>
+<li>At least one frontier model tested, multiple trials per task</li>
+<li>You read the failing transcripts and can explain why models fail</li>
+<li>README explains how to run, with versions, cost and runtime</li>
+<li>ZIP opens, under 50 MB, no videos, no keys or private data</li>
+<li>Prior work disclosed; representative transcripts included for each reported model</li>
+<li>Video link opens without permission and has audio; description filled in</li>
+<li>You scored your own project against the rubric and reviewed every task, answer and rule yourself</li>
+</ul>
+
+<h2>Skills and tools</h2>
+<div class="card">This is eval design, not model training. Heavy ML skills matter only if your domain needs them. No API credits are provided.</div>
+<ul>
+<li><b>Core skills:</b> task design, grader design, dataset hygiene (JSONL/CSV, no leakage), reproducibility (pinned deps, temperature 0, one-command run), clear writing.</li>
+<li><b>Tools:</b> Python 3 with venv or uv, pytest, pandas or polars if needed, an OpenAI-compatible client pointed at OpenRouter. Optional: Inspect AI or Harbor (the guide says neither is required). These are my suggestions from general knowledge, not verified.</li>
+<li><b>Community Claude Code skills</b> (unvetted, read the SKILL.md first): <a href="https://claudemarketplaces.com/skills/secondsky/claude-skills/ml-model-training">ml-model-training</a>, <a href="https://claudemarketplaces.com/skills/mindrally/skills/pytorch">pytorch</a>, <a href="https://claudemarketplaces.com/skills/personamanagmentlayer/pcl/ml-expert">ml-expert</a>.</li>
+<li><b>Further reading (from the guide):</b> <a href="https://www.anthropic.com/research/demystifying-evals-for-ai-agents">Demystifying evals for AI agents</a>, <a href="https://claude.dev/blog/automating-eval-design-and-hillclimbing">Automating eval design and hillclimbing with Claude</a>.</li>
+</ul>
+
+<h2>Repo status</h2>
+<div class="card">
+Scaffold pushed to <code>MohammedMoataz/micro1-eval-hackathon</code> (main): README, <code>evalkit/</code> (grader, runner, report, OpenRouter client), <code>tests/</code> (7 passing), <code>data/tasks.jsonl</code> with 2 placeholders, <code>scripts/make_zip.py</code>.
+<br><b>Still to add:</b> <code>reference/</code> solutions, <code>transcripts/</code>, multi-trial runs with pass^k, and README sections for AI use and hot take.
+<br><b>Open decision:</b> which domain to build the eval on.
+</div>
+
+<h2>Contacts and links</h2>
+<ul>
+<li>Organizers: hackathon@micro1.ai (a participant Discord is linked on the event page)</li>
+<li><a href="https://www.micro1.ai/hackathon/faq">Official FAQ</a> · <a href="https://www.micro1.ai/hackathon/agreement">Participant Agreement</a> · <a href="https://hrcdn.net/s3_pub/istreet-assets/R_8vs8ejamSPapSbUxmcWQ/Eval_Hackathon_Participant_Guide.pdf">Participant Guide (PDF)</a></li>
+<li>Winners announced 23 Nov 2026. Prizes: 1st $5,000, 2nd $3,000, 3rd $2,000.</li>
+</ul>
+
+<script>
+const end=Date.parse('2026-11-09T07:15:00+02:00');
+function t(){let s=Math.floor((end-Date.now())/1000);const e=document.getElementById('cd');
+if(s<=0){e.textContent='Window closed';return}
+e.textContent=Math.floor(s/86400)+'d '+Math.floor(s%86400/3600)+'h '+Math.floor(s%3600/60)+'m'}
+t();setInterval(t,30000);
+try{const k='steps-v1',b=[...document.querySelectorAll('#steps input')];
+const saved=JSON.parse(localStorage.getItem(k)||'[]');b.forEach((c,i)=>{c.checked=!!saved[i];c.onchange=()=>localStorage.setItem(k,JSON.stringify(b.map(x=>x.checked)))})}catch(e){}
+</script>
+</main></body></html>
