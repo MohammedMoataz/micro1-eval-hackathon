@@ -134,7 +134,18 @@ This is an eval-design task, not model training. Heavy ML skills matter only if 
 - Optional: `inspect-ai` as an eval framework. The FAQ does not require any framework; plain scripts are fine.
 - Only if the domain needs them: `scikit-learn`, PyTorch, Hugging Face `datasets`.
 
-**Community Claude Code skills** (unvetted, small install counts; read the SKILL.md before installing)
+**Project Claude Code skills** (in `.claude/skills/`, loaded automatically in this repo, excluded from the ZIP)
+
+| Skill | Delivery steps | Built from |
+|-------|----------------|------------|
+| `eval-topic-research` | 1-2: pick and validate the topic, prior-art check | sanjay3290/deep-research + Anjos2/recursive-research |
+| `eval-task-design` | 3-4: tasks, grader choice, grader tests | README core skills |
+| `eval-data-audit` | 3, 6-7: `audit.py` checks tasks and results | coffeefuelbump/csv-data-summarizer |
+| `eval-failure-analysis` | 7: classify every failure, write `docs/failure_analysis.md` | recursive-research "no self-confirmation" |
+| `eval-submission` | 8-13: README, clean-room, secrets, ZIP, video, submit | README checklist |
+| `ml-domain-tasks` | only if the topic is ML | the three community skills below |
+
+**Community Claude Code skills** (unvetted, small install counts; read the SKILL.md before installing; the useful parts are distilled into `ml-domain-tasks`)
 - [ml-model-training](https://claudemarketplaces.com/skills/secondsky/claude-skills/ml-model-training): scikit-learn, PyTorch, TensorFlow pipelines.
 - [pytorch](https://claudemarketplaces.com/skills/mindrally/skills/pytorch): nn.Module patterns, mixed precision.
 - [ml-expert](https://claudemarketplaces.com/skills/personamanagmentlayer/pcl/ml-expert): boilerplate templates.
