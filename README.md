@@ -81,6 +81,59 @@ Keep the repo small and flat. Everything a judge needs is reachable from this RE
 - **Large files stay out.** The ZIP limit is 50 MB. Host big data elsewhere and link it here with fetch instructions.
 - **One command to run, one to report.** Anything more and a judge may give up.
 
+## Delivery plan
+
+Deadline is Mon 9 Nov 2026, 07:15 Cairo. Submit Sun 8 Nov evening, not Monday morning.
+
+**Sat 7 Nov**
+1. **Read the Instructions tab** on HackerRank: format, rubric, reference examples, and what Q1 (upload) and Q2 (subjective) ask. This decides the folder layout.
+2. **Pick one narrow topic** in a domain you know, where frontier models really fail. Not a trick question. Write the idea in 2 lines and check it has a clear correct answer.
+3. **Draft 5 to 10 tasks** in `data/tasks.jsonl` (id, prompt, expected answer or rubric, metadata). Public or synthetic data only.
+4. **Build the grader.** Prefer deterministic checks. Add `tests/test_grader.py` with known-good and known-bad answers, and confirm wrong answers are rejected.
+5. **Write the runner.** Load tasks, call the model through an OpenAI-compatible client (OpenRouter), save raw outputs. Temperature 0, record model id and date.
+
+**Sun 8 Nov**
+6. **Run on models.** Free model first to debug, then at least one frontier model. API cost is yours.
+7. **Check the failures.** Confirm models fail for the intended reason, not a bad task or grader. Fix and rerun if not. Write `docs/failure_analysis.md` with examples.
+8. **Finish this README.** Fill every `TODO`: what it tests, who it is for, why it matters, run commands, runtime, cost, expected results.
+9. **Clean-room test.** Clone into a fresh folder, new venv, follow only the README. Fix whatever breaks.
+10. **Record the video** (5 min max): problem, how it works, how it is graded, what it reveals. Upload to YouTube, Drive, Loom or Vimeo. Open the link in an incognito window and check the audio.
+11. **Build the ZIP.** Code only, under 50 MB, no `.env`, keys, videos or `.venv`. Open it and scan for secrets.
+
+**Submit (Sun 8 Nov evening)**
+12. **Upload the ZIP**, paste the video link, fill in the short description. Run the checklist below.
+13. **Click Submit only after everything is uploaded.** It is final.
+
+Resubmitting before the deadline is allowed; only the latest complete submission counts. Questions: hackathon@micro1.ai.
+
+## Suggested skills and tools
+
+This is an eval-design task, not model training. Heavy ML skills matter only if the chosen domain needs them.
+
+**Core skills**
+- Task design: unambiguous prompts, one defensible answer, difficulty that frontier models fail for a real reason.
+- Grader design: exact match, programmatic checks, or rubric/LLM judge. Test the grader on known-good and known-bad answers.
+- Dataset handling: plain JSON/JSONL/CSV, versioned, public or synthetic, checked for duplicates and answer leakage.
+- Reproducibility: pinned dependencies, fixed seeds, temperature 0, one-command run, expected results documented.
+- Writing: a clear README and a 5-minute video that explain the failure.
+
+**Tools to install** (suggestions from general knowledge, not verified against current docs)
+- Python 3 with `uv` or `venv` for a pinned environment.
+- `pandas` or `polars` to build and check the task dataset; `pytest` for the grader tests.
+- An OpenAI-compatible client pointed at OpenRouter to run many models with one key.
+- Optional: `inspect-ai` as an eval framework. The FAQ does not require any framework; plain scripts are fine.
+- Only if the domain needs them: `scikit-learn`, PyTorch, Hugging Face `datasets`.
+
+**Community Claude Code skills** (unvetted, small install counts; read the SKILL.md before installing)
+- [ml-model-training](https://claudemarketplaces.com/skills/secondsky/claude-skills/ml-model-training): scikit-learn, PyTorch, TensorFlow pipelines.
+- [pytorch](https://claudemarketplaces.com/skills/mindrally/skills/pytorch): nn.Module patterns, mixed precision.
+- [ml-expert](https://claudemarketplaces.com/skills/personamanagmentlayer/pcl/ml-expert): boilerplate templates.
+- Marketplace: [mcpmarket data-science-ml](https://mcpmarket.com/tools/skills/categories/data-science-ml).
+
+**Reading**
+- [Making LLM Evaluation Reproducible in Python](https://pretalx.com/euroscipy-2026/talk/FT7JQV/)
+- [LLM eval libraries 2026](https://futureagi.com/blog/best-llm-eval-libraries-2026) (vendor blog, treat rankings with caution)
+
 ## Pre-submission checklist
 
 - [ ] ZIP opens and is under 50 MB
