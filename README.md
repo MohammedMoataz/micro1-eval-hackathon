@@ -36,9 +36,25 @@ Submissions close **Mon 9 Nov 2026, 07:15 Cairo time** (05:15 GMT). Resubmitting
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env                                  # add your own OPENROUTER_API_KEY
-python -m evalkit.run --model <model-id> --out results/<run-name>
-python -m evalkit.report results/<run-name>
+python -m evalkit.run --model <model-id> --out results/<run-name> --trials 5 --temperature 0.7
+python -m evalkit.report results/<run-a> results/<run-b> --out results/REPORT.md
 ```
+
+`--trials` defaults to 3. At temperature 0 most providers return nearly identical answers, so trials measure little; use a temperature above 0 (for example 0.7) to measure consistency, and record it.
+
+### Metrics reported
+
+| Metric | Meaning |
+|--------|---------|
+| Pass rate | Graded attempts that are correct, with a 95% bootstrap CI that resamples tasks (trials of one task are not independent) |
+| pass@k | Share of tasks where at least one of k trials is correct |
+| pass^k | Share of tasks where all k trials are correct (consistency) |
+| Accuracy by trap type | Pass rate per `metadata.trap` value, as a model x trap table |
+| Passes per task | task x model grid such as `2/5`, for spotting tasks nobody passes (bad task or bad gold answer) |
+| API errors | Failed calls are recorded and excluded from scores, never counted as wrong answers |
+| Runtime | Seconds of API time per run. Tokens and dollar cost are not recorded; note them by hand from the provider dashboard |
+
+Every task needs `metadata.trap`, the specific pitfall it tests (for example `units`, `pct-vs-points`, `multi-step`). Write the hypothesis per trap in the README before running, then let the by-trap table confirm or refute it.
 
 Approximate runtime: TODO. Approximate cost per model: TODO. Expected headline results: see `results/`.
 
@@ -62,6 +78,8 @@ Keep the repo small and flat. Everything a judge needs is reachable from this RE
 │   └── report.py          # results -> table / summary
 ├── tests/
 │   ├── test_grader.py     # known-good answers pass, known-bad answers fail
+│   ├── test_run.py        # offline pipeline: trials, error handling
+│   ├── test_report.py     # metric values checked on known data
 │   └── test_tasks.py      # schema check, unique ids, no duplicate prompts
 ├── results/               # small result files for the headline claims (json/csv/md)
 │   └── <model>__<date>/
