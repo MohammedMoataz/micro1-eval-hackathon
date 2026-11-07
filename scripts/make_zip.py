@@ -2,7 +2,7 @@
 import pathlib
 import zipfile
 
-SKIP = {".git", ".venv", "__pycache__", ".pytest_cache", "dist", ".env", ".claude"}
+SKIP = {".git", ".venv", "__pycache__", ".pytest_cache", "dist", ".env", ".claude", "raw"}
 root = pathlib.Path(__file__).resolve().parent.parent
 out = root / "dist" / "eval.zip"
 out.parent.mkdir(exist_ok=True)

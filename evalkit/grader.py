@@ -11,9 +11,16 @@ def exact(output: str, answer: str) -> bool:
 
 
 def numeric(output: str, answer: str) -> bool:
-    # ponytail: compares the LAST number in the output; tolerance fixed at 1e-6.
-    nums = re.findall(r"-?\d+(?:\.\d+)?", output.replace(",", ""))
-    return bool(nums) and abs(float(nums[-1]) - float(answer)) < 1e-6
+    """Reads the LAST line of the form `ANSWER: <number>`; no such line, or not exactly one number on it, fails.
+    Passes when within half a unit of the answer's last decimal (the prompt states the rounding)."""
+    lines = re.findall(r"(?im)^\W*answer\s*[:=]\s*(.+)$", output)
+    if not lines:
+        return False
+    nums = re.findall(r"-?\d+(?:\.\d+)?", lines[-1].replace(",", "").replace("−", "-"))
+    if len(nums) != 1:
+        return False
+    tol = 0.5 * 10 ** -(len(answer.split(".")[1]) if "." in answer else 0) + 1e-9
+    return abs(float(nums[0]) - float(answer)) <= tol
 
 
 def regex(output: str, answer: str) -> bool:

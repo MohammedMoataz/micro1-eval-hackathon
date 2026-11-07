@@ -50,7 +50,8 @@ def audit_tasks(tasks):
         if "TODO" in json.dumps(t):
             blockers.append(f"{tid}: TODO still in task")
         # Known-good check: the grader must accept the reference answer itself.
-        if t["grader"] != "regex" and not grade(t, str(t["answer"])):
+        ref = str(t["answer"])
+        if t["grader"] != "regex" and not (grade(t, ref) or grade(t, f"ANSWER: {ref}")):
             blockers.append(f"{tid}: grader rejects its own reference answer")
         # Leak check: a short answer sitting verbatim in the prompt is a giveaway.
         a = norm(t["answer"])
