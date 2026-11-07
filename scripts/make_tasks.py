@@ -1,16 +1,26 @@
 """python scripts/make_tasks.py -> data/tasks.jsonl (deterministic; fixed seeds).
 
-Eight synthetic tasks, two per trap. Companies and numbers are invented; each task copies the *structure*
-of a real FinQA record (Chen et al., EMNLP 2021, MIT licence), so the answer cannot be recalled from the
-original. Every answer comes from the reference solution written in the generator, never from FinQA's labels
-(three FinQA labels we inspected were wrong). `slip` is the answer a model gets from the trap mistake.
+Eight synthetic tasks, two per trap. Companies and numbers are invented. Six tasks keep the *table shape*
+of a real FinQA record (Chen et al., EMNLP 2021, MIT licence); two use original structures. Every answer
+comes from the reference solution written here, never from FinQA's labels (three FinQA labels we inspected
+were wrong). `slip` is the answer a model gets from the trap mistake; the grader must reject it.
+
+Version 2 (harder): the v1 tasks were solved 8/8 by three models, so each task now needs a reading skill a
+shortcut gets wrong: sub-period returns, CAGR, "of which" rows, restatements, a derived missing cell,
+fiscal-to-calendar conversion, a text amount in a different unit, and average-vs-closing FX rates.
 """
 import json
 import pathlib
 import random
 
 OUT = pathlib.Path(__file__).resolve().parent.parent / "data" / "tasks.jsonl"
-FINQA = "synthetic numbers; table structure adapted from FinQA record {} (MIT, Chen et al. 2021)"
+
+
+def finqa(rec):
+    return f"synthetic numbers; table shape adapted from FinQA record {rec} (MIT, Chen et al. 2021)"
+
+
+ORIGINAL = "synthetic numbers; original table structure"
 
 
 def md(header, rows):
@@ -23,63 +33,98 @@ def task(tid, context, table, question, rule, answer, slip, trap, why, ref, src)
     prompt = (f"Below is an excerpt from a company annual report.\n\n{context}\n\n{table}\n\n"
               f"Question: {question}\n\nWork through the calculation, then end your reply with one final "
               f"line in exactly this form:\nANSWER: <number>\n{rule}")
+    assert answer not in prompt, tid  # no leak
     return {"id": tid, "prompt": prompt, "answer": answer, "grader": "numeric",
-            "metadata": {"domain": "financial reports", "trap": trap, "difficulty": "medium",
-                         "source": FINQA.format(src), "why_hard": why, "reference": ref, "slip": slip}}
+            "metadata": {"domain": "financial reports", "trap": trap, "difficulty": "hard",
+                         "source": src, "why_hard": why, "reference": ref, "slip": slip}}
 
 
 def f2(x):
     return f"{x:.2f}"
 
 
-def f1(x):
-    return f"{x:.1f}"
+def walk(rng, n):
+    v = [100.0]
+    for _ in range(n - 1):
+        v.append(round(v[-1] * (1 + rng.uniform(-0.12, 0.30)), 2))
+    return v
 
 
-def returns_task(tid, seed, company, idx, other, dates, col, src, trap_note):
-    rng = random.Random(seed)
+D6 = ["12/31/2013", "12/31/2014", "12/31/2015", "12/31/2016", "12/31/2017", "12/31/2018"]
 
-    def walk():
-        v = [100.0]
-        for _ in range(len(dates) - 1):
-            v.append(round(v[-1] * (1 + rng.uniform(-0.08, 0.28)), 2))
-        return v
-    a, b, c = walk(), walk(), walk()
+
+def returns_table(company, idx, other, a, b, c):
     fmt = lambda row: [f"$ {x:.2f}" for x in row]
-    table = md([""] + dates, [[company] + fmt(a), [idx] + fmt(b), [other] + fmt(c)])
-    ctx = (f"The graph assumes $100 was invested on {dates[0]} in {company} common stock and in each index, "
+    ctx = (f"The graph assumes $100 was invested on {D6[0]} in {company} common stock and in each index, "
            f"with dividends reinvested. The table shows the value of each investment at each date.")
-    q = (f"What was the difference, in percentage points, between {company}'s cumulative total return and the "
-         f"{idx}'s cumulative total return for the period ended {dates[col]}?")
-    rule = f"Give the number only, without a % sign, rounded to 2 decimals. Use a negative number if {company} is lower."
-    ans = f2((a[col] - 100) - (b[col] - 100))
-    slip = f2((a[col] / b[col] - 1) * 100) if col == len(dates) - 1 else f2(a[-1] - b[-1])
-    return task(tid, ctx, table, q, rule, ans, slip, "pct-vs-points", trap_note,
-                f"({a[col]} - 100) - ({b[col]} - 100) = {ans}", src)
+    return ctx, md([""] + D6, [[company] + fmt(a), [idx] + fmt(b), [other] + fmt(c)])
 
 
-def coal_share(tid, seed, src):
+def subperiod_returns(tid, seed):
     rng = random.Random(seed)
-    names = ["Grain and agricultural", "Vehicles", "Chemicals", "Coal", "Industrial products", "Intermodal"]
+    company, idx, other = "Cedar Systems Inc.", "Nasdaq composite", "S&P 400 information technology"
+    a, b, c = walk(rng, 6), walk(rng, 6), walk(rng, 6)
+    ctx, table = returns_table(company, idx, other, a, b, c)
+    q = (f"Over the three years from {D6[2]} to {D6[5]}, what was the difference, in percentage points, between "
+         f"the total return of {company} and the total return of the {idx}?")
+    rule = f"Give the number only, without a % sign, rounded to 2 decimals. Use a negative number if {company} is lower."
+    ans = f2((a[5] / a[2] - b[5] / b[2]) * 100)
+    slip = f2((a[5] - 100) - (b[5] - 100))
+    return task(tid, ctx, table, q, rule, ans, slip, "pct-vs-points",
+                "The window starts mid-table, so 'value - 100' (the shortcut that works from the $100 base) is wrong; "
+                "each return must be end/start - 1.",
+                f"({a[5]} / {a[2]} - {b[5]} / {b[2]}) * 100 = {ans}", finqa("CDNS/2015/page_30.pdf-3"))
+
+
+def annualized_returns(tid, seed):
+    rng = random.Random(seed)
+    company, idx, other = "Meridian Freight Inc.", "Dow Jones transportation average", "S&P 500 index"
+    a, b, c = walk(rng, 6), walk(rng, 6), walk(rng, 6)
+    ctx, table = returns_table(company, idx, other, a, b, c)
+    q = (f"What was the difference, in percentage points, between the compound annual growth rate of the "
+         f"{company} investment and that of the {idx} investment over the five years from {D6[0]} to {D6[5]}?")
+    rule = f"Give the number only, without a % sign, rounded to 2 decimals. Use a negative number if {company} is lower."
+    cagr = lambda v: ((v[5] / 100) ** (1 / 5) - 1) * 100
+    ans = f2(cagr(a) - cagr(b))
+    slip = f2(((a[5] - 100) - (b[5] - 100)) / 5)
+    return task(tid, ctx, table, q, rule, ans, slip, "pct-vs-points",
+                "Annualized means compounding (5th root); dividing the cumulative point gap by 5 is the common shortcut.",
+                f"((({a[5]}/100)^(1/5) - 1) - (({b[5]}/100)^(1/5) - 1)) * 100 = {ans}", finqa("UPS/2012/page_32.pdf-2"))
+
+
+def of_which_rows(tid, seed):
+    rng = random.Random(seed)
     years = ["2016", "2015", "2014"]
-    cols = {n: [rng.randint(2000, 4500) for _ in years] for n in names}
-    cols["Coal"] = [rng.randint(2300, 2700), rng.randint(3000, 3400), rng.randint(3900, 4300)]
-    freight = [sum(cols[n][i] for n in names) for i in range(3)]
+    parents = ["Agricultural products", "Automotive", "Chemicals", "Coal", "Industrial products", "Intermodal"]
+    val = {p: [rng.randint(2000, 4500) for _ in years] for p in parents}
+    subs = {"Chemicals": "of which: plastics", "Coal": "of which: export coal",
+            "Industrial products": "of which: construction materials"}
+    sub_val = {p: [round(x * rng.uniform(0.3, 0.6)) for x in val[p]] for p in subs}
     other = [rng.randint(1200, 1500) for _ in years]
-    total = [freight[i] + other[i] for i in range(3)]
-    rows = [[n] + cols[n] for n in names] + [["Total freight revenues"] + freight,
-                                              ["Other revenues"] + other, ["Total operating revenues"] + total]
-    ctx = "Revenue by commodity group for Plains Pacific Railroad Corporation (amounts in millions of dollars)."
-    q = "What percent of total operating revenues for 2014 through 2016 combined came from coal?"
+    rows = []
+    for p in parents:
+        rows.append([p] + val[p])
+        if p in subs:
+            rows.append([subs[p]] + sub_val[p])
+    rows.append(["Other revenues"] + other)
+    ctx = ("Operating revenues of Plains Pacific Railroad Corporation (amounts in millions of dollars). Freight "
+           "revenue is the revenue of the commodity groups; other revenues are not freight revenue.")
+    q = ("What percent of freight revenue for 2014 through 2016 combined came from commodity groups other than coal "
+         "and intermodal?")
     rule = "Give the number only, without a % sign, rounded to 2 decimals."
-    ans = f2(sum(cols["Coal"]) / sum(total) * 100)
-    slip = f2(sum(cols["Coal"]) / sum(freight) * 100)
+    keep = [p for p in parents if p not in ("Coal", "Intermodal")]
+    num, den = sum(sum(val[p]) for p in keep), sum(sum(val[p]) for p in parents)
+    ans = f2(num / den * 100)
+    sub_keep, sub_all = sum(sum(sub_val[p]) for p in keep if p in subs), sum(sum(v) for v in sub_val.values())
+    slip = f2((num + sub_keep) / (den + sub_all) * 100)
     return task(tid, ctx, md(["millions"] + years, rows), q, rule, ans, slip, "lookup",
-                "Total freight revenues and total operating revenues sit one row apart; the wrong denominator is a plausible slip.",
-                f"sum(coal) / sum(total operating revenues) * 100 = {ans}", src)
+                "No subtotal is given, so freight revenue must be summed by hand; 'of which' rows are already inside "
+                "their parent line and adding them double-counts.",
+                f"sum({', '.join(keep)}) over 3 years = {num}; / sum(all 6 groups) {den} * 100 = {ans}",
+                finqa("UNP/2016/page_52.pdf-3"))
 
 
-def mortgage_share(tid, seed, src):
+def restated_line(tid, seed):
     rng = random.Random(seed)
     cf = [rng.randint(1000, 1500), rng.randint(1200, 1700)]
     cl = [rng.randint(200, 300), rng.randint(600, 800)]
@@ -88,117 +133,137 @@ def mortgage_share(tid, seed, src):
     oth = [rng.randint(200, 260), rng.randint(230, 290)]
     ct, rt = [cf[i] + cl[i] for i in (0, 1)], [rf[i] + rl[i] for i in (0, 1)]
     tot = [ct[i] + rt[i] + oth[i] for i in (0, 1)]
+    restated = cf[1] - rng.randint(150, 300)
     rows = [["Commercial mortgages at fair value"] + cf, ["Commercial mortgages at lower of cost or market"] + cl,
             ["Total commercial mortgages"] + ct, ["Residential mortgages at fair value"] + rf,
             ["Residential mortgages at lower of cost or market"] + rl, ["Total residential mortgages"] + rt,
             ["Other"] + oth, ["Total"] + tot]
-    ctx = "Mortgage loans held for sale of Lakeshore Financial Corporation (in millions of dollars)."
-    q = "At December 31, 2008, what percent of total commercial mortgages was carried at fair value?"
-    rule = "Give the number only, without a % sign, rounded to 1 decimal."
-    ans = f1(cf[1] / ct[1] * 100)
-    slip = f1(cf[0] / ct[0] * 100)
+    ctx = ("Mortgage loans held for sale of Lakeshore Financial Corporation (in millions of dollars). The table shows "
+           f"amounts as originally reported. In 2009 the company restated one 2008 figure: commercial mortgages at fair "
+           f"value at December 31, 2008 were ${restated} million. No other line item was restated; totals were "
+           f"updated accordingly.")
+    q = "Using the restated figures, what percent of total commercial mortgages at December 31, 2008 was carried at fair value?"
+    rule = "Give the number only, without a % sign, rounded to 2 decimals."
+    ans = f2(restated / (restated + cl[1]) * 100)
+    slip = f2(cf[1] / ct[1] * 100)
     return task(tid, ctx, md(["in millions", "Dec. 31, 2009", "Dec. 31, 2008"], rows), q, rule, ans, slip,
-                "lookup", "Eight similar rows and two year columns; the 2009 column or the wrong total row is an easy slip.",
-                f"{cf[1]} / {ct[1]} * 100 = {ans}", src)
+                "lookup", "The restated number lives in the text and changes both numerator and the commercial total; "
+                "reading the table as-is gives the originally reported share.",
+                f"{restated} / ({restated} + {cl[1]}) * 100 = {ans}", finqa("PNC/2009/page_41.pdf-4"))
 
 
-def tax_rollforward(tid, seed, src):
+def derived_missing_cell(tid, seed):
     rng = random.Random(seed)
-    begin = rng.randint(250, 320)
-    years, cols, b = ["2010", "2011", "2012"], {}, begin
+    years, cols, b = ["2010", "2011", "2012"], {}, rng.randint(250, 320)
+    begin = b
     acq = {"2010": rng.randint(3, 6), "2011": 0, "2012": rng.randint(9, 14)}
     for y in years:
         add_p, red_p = rng.randint(4, 22), -rng.randint(1, 17)
-        add_c, lapse, sett = rng.randint(35, 70), rng.choice([0, -8]), -rng.randint(2, 30)
+        add_c, lapse, sett = rng.randint(35, 70), rng.choice([0, -8]), -rng.randint(8, 30)
         end = b + add_p + red_p + add_c + lapse + sett + acq[y]
         cols[y] = [b, add_p, red_p, add_c, lapse, sett, acq[y], end]
         b = end
     labels = ["Balance at January 1", "Additions for tax positions of prior years",
               "Reductions for tax positions of prior years", "Additions based on tax positions related to current year",
               "Lapse of statute of limitations", "Settlements", "Positions assumed in acquisitions", "Balance at December 31"]
-    show = lambda v: "—" if v == 0 else v
     order = ["2012", "2011", "2010"]
-    rows = [[labels[i]] + [show(cols[y][i]) for y in order] for i in range(8)]
-    inc = cols["2012"][7] - cols["2010"][0]
-    assert inc > 0
+
+    def cell(y, i):
+        if y == "2011" and i == 5:
+            return "n/a"
+        return "—" if cols[y][i] == 0 else cols[y][i]
+    rows = [[labels[i]] + [cell(y, i) for y in order] for i in range(8)]
     ctx = ("Reconciliation of unrecognized tax benefits for Harbor Asset Management Inc. (amounts in millions of "
-           "dollars). A dash means zero.")
-    q = ("What percent of the net increase in the balance from January 1, 2010 to December 31, 2012 came from "
-         "positions assumed in acquisitions? (Net increase = balance at December 31, 2012 minus balance at January 1, 2010.)")
+           "dollars). A dash means zero. One figure was not available when this excerpt was prepared and is shown as "
+           "n/a; every other figure, including all balances, is as reported.")
+    q = ("What were total settlements over 2010, 2011 and 2012 combined, as a percent of the balance at January 1, "
+         "2010? Treat settlements as a positive amount.")
     rule = "Give the number only, without a % sign, rounded to 2 decimals."
-    tot_acq = sum(acq.values())
-    ans = f2(tot_acq / inc * 100)
-    slip = f2(tot_acq / cols["2012"][7] * 100)
+    sett = [-cols[y][5] for y in years]
+    ans = f2(sum(sett) / begin * 100)
+    slip = f2((sett[0] + sett[2]) / begin * 100)
     return task(tid, ctx, md(["(in millions)"] + [f"Year ended Dec. 31, {y}" for y in order], rows), q, rule, ans, slip,
-                "multi-step", "Needs the span-start and span-end balances from different columns, acquisitions summed over three columns (one a dash), then a ratio.",
-                f"({acq['2010']} + {acq['2011']} + {acq['2012']}) / ({cols['2012'][7]} - {cols['2010'][0]}) * 100 = {ans}", src)
+                "multi-step", "The 2011 settlement must be derived from the roll-forward identity (end = start + all "
+                "movements); treating n/a as zero or skipping it is the slip.",
+                f"2011 settlement = {cols['2011'][7]} - ({' + '.join(str(cols['2011'][i]) for i in (0, 1, 2, 3, 4, 6))}) "
+                f"= {-sett[1]}; ({' + '.join(map(str, sett))}) / {begin} * 100 = {ans}", finqa("BLK/2012/page_160.pdf-2"))
 
 
-def amortization(tid, seed, src):
+def fiscal_to_calendar(tid, seed):
     rng = random.Random(seed)
-    v = [rng.randint(60, 70)]
+    fys = ["2019", "2020", "2021", "2022", "2023"]
+    v = [rng.randint(60, 90)]
     for _ in range(4):
-        v.append(max(8, v[-1] - rng.randint(4, 22)))
-    y17 = rng.randint(70, 95)
-    ctx = (f"Amortization expense for other intangible assets was approximately ${y17} million in 2017. The following "
-           f"table presents estimated amortization expense for each of the five succeeding years. Management expects "
-           f"2023 amortization expense to be 30% lower than the 2022 amount.")
-    rows = [[y, v[i]] for i, y in enumerate(["2018", "2019", "2020", "2021", "2022"])]
-    est23 = v[4] * 0.7
-    q = ("Including the 2023 estimate, what percent of the total estimated amortization expense for 2018 through "
-         "2023 is expected in 2019 and 2020 combined?")
-    rule = "Give the number only, without a % sign, rounded to 1 decimal."
-    ans = f1((v[1] + v[2]) / (sum(v) + est23) * 100)
-    slip = f1((v[1] + v[2]) / sum(v) * 100)
-    return task(tid, ctx, md(["For the years ending December 31", "(in millions)"], rows), q, rule, ans, slip,
-                "multi-step", "The 2023 figure must be derived from text (70% of 2022) and added to the total before the ratio; skipping it is a plausible slip.",
-                f"({v[1]} + {v[2]}) / ({sum(v)} + 0.7 * {v[4]}) * 100 = {ans}", src)
+        v.append(max(8, v[-1] - rng.randint(5, 20)))
+    ctx = ("Northgate Medical Devices Inc.'s fiscal year ends on September 30; fiscal 2020, for example, runs from "
+           "October 1, 2019 to September 30, 2020. The table presents estimated amortization expense for other "
+           "intangible assets by fiscal year.")
+    q = ("Assuming the expense is incurred evenly across the months of each fiscal year, what is the estimated "
+         "amortization expense for calendar year 2020 (January 1 to December 31, 2020), in millions of dollars?")
+    rule = "Give the number only, rounded to 2 decimals."
+    ans = f2(0.75 * v[1] + 0.25 * v[2])
+    slip = f2(0.25 * v[1] + 0.75 * v[2])
+    return task(tid, ctx, md(["Fiscal year", "(in millions)"], [[y, v[i]] for i, y in enumerate(fys)]), q, rule, ans,
+                slip, "multi-step", "Calendar 2020 = 9 months of fiscal 2020 + 3 months of fiscal 2021; models often "
+                "flip the weights or just report fiscal 2020.",
+                f"0.75 * {v[1]} + 0.25 * {v[2]} = {ans}", finqa("HUM/2017/page_118.pdf-3") + "; fiscal-year shift is original")
 
 
-def debt_36(tid, seed, src):
+def eps_mixed_units(tid, seed):
     rng = random.Random(seed)
-    amt = [rng.randint(250000, 1200000) for _ in range(5)]
-    rows = [[str(2014 + i), f"$ {amt[i]}"] for i in range(5)]
-    ctx = "Annual long-term debt maturities of Delta Valley Power Corporation as of December 31, 2013."
-    q = "How much long-term debt, in millions of dollars, is due in the next 36 months?"
-    rule = "Give the number only, without commas, rounded to 1 decimal."
-    s = sum(amt[:3])
-    ans = f1(s / 1000)
-    return task(tid, ctx, md(["", "Amount (in thousands)"], rows), q, rule, ans, f1(s), "units",
-                "The table is in thousands and the answer is asked in millions; leaving the scale unconverted is the slip.",
-                f"({amt[0]} + {amt[1]} + {amt[2]}) / 1000 = {ans}", src)
+    rev = [rng.randint(4000, 9000), rng.randint(4000, 9000)]
+    ni = [rng.randint(300, 900), rng.randint(300, 900)]
+    basic = [rng.randint(150000, 400000), rng.randint(150000, 400000)]
+    dil = [x + rng.randint(2000, 9000) for x in basic]
+    gain = rng.randint(25000, 90000)
+    rows = [["Revenue"] + rev, ["Net income"] + ni, ["Weighted-average shares outstanding — basic"] + basic,
+            ["Weighted-average shares outstanding — diluted"] + dil]
+    ctx = ("Selected financial data of Brightwater Logistics Corp. (in millions of dollars, except share counts, which "
+           f"are in thousands). Net income for 2019 includes a one-time gain on the sale of a warehouse of "
+           f"${gain:,} thousand, before and after tax.")
+    q = "What was 2019 diluted earnings per share, in dollars, excluding the one-time gain?"
+    rule = "Give the number only, rounded to 2 decimals."
+    ans = f2((ni[0] - gain / 1000) * 1000 / dil[0])
+    slip = f2((ni[0] - gain / 1_000_000) * 1000 / dil[0])
+    return task(tid, ctx, md(["", "2019", "2018"], rows), q, rule, ans, slip, "units",
+                "Three scales in one excerpt (dollars in millions, shares in thousands, the gain in thousands of "
+                "dollars); converting the gain as if it were in dollars leaves it almost unsubtracted.",
+                f"({ni[0]} - {gain}/1000) * 1000 / {dil[0]} = {ans}", ORIGINAL)
 
 
-def debt_24_mixed(tid, seed, src):
+def fx_average_rate(tid, seed):
     rng = random.Random(seed)
-    amt = [rng.randint(300000, 1000000) for _ in range(5)]
-    extra = rng.choice([120, 175, 240, 310])
-    rows = [[str(2019 + i), f"$ {amt[i]}"] for i in range(5)]
-    ctx = (f"Annual long-term debt maturities of Ridgeview Utilities Inc. as of December 31, 2018. In addition, "
-           f"notes with a face value of ${extra} million fall due in 2020 and are not included in the table.")
-    q = ("In millions of dollars, what is the total of all long-term debt due in the next 24 months (2019 and 2020), "
-         "including the notes described in the text?")
-    rule = "Give the number only, without commas, rounded to 1 decimal."
-    s = amt[0] + amt[1]
-    ans = f1(s / 1000 + extra)
-    return task(tid, ctx, md(["", "Amount (in thousands)"], rows), q, rule, ans, f1(s / 1000), "units",
-                "Table is in thousands, text is in millions; the notes in the text are easy to leave out or to add in the wrong unit.",
-                f"({amt[0]} + {amt[1]}) / 1000 + {extra} = {ans}", src)
+    rev = [rng.randint(80000, 150000), rng.randint(80000, 150000)]
+    oi = [rng.randint(9000, 20000), rng.randint(9000, 20000)]
+    assets = [rng.randint(200000, 350000), rng.randint(200000, 350000)]
+    avg, close = round(rng.uniform(1.10, 1.18), 4), round(rng.uniform(1.04, 1.09), 4)
+    rows = [["Revenue"] + rev, ["Operating income"] + oi, ["Total assets"] + assets]
+    rates = md(["US dollars per euro", "2019", "2018"],
+               [["Average rate for the year", avg, round(avg + 0.05, 4)],
+                ["Rate at December 31", close, round(close + 0.06, 4)]])
+    ctx = ("Lakeland GmbH, a subsidiary of Lakeland Holdings Inc., reports in euros (amounts below in thousands of "
+           "euros). Group policy: income statement items are translated into US dollars at the average rate for the "
+           "year; balance sheet items at the rate at the balance sheet date.")
+    q = "What was Lakeland GmbH's 2019 operating income in millions of US dollars?"
+    rule = "Give the number only, rounded to 2 decimals."
+    ans = f2(oi[0] / 1000 * avg)
+    slip = f2(oi[0] / 1000 * close)
+    return task(tid, ctx, md(["EUR thousands", "2019", "2018"], rows) + "\n\n" + rates, q, rule, ans, slip, "units",
+                "Two rate rows and two unit scales; translating an income item at the closing rate (the balance-sheet "
+                "rule) is the slip.",
+                f"{oi[0]} / 1000 * {avg} = {ans}", ORIGINAL)
 
 
 def build():
-    d6 = ["12/31/2013", "12/31/2014", "12/31/2015", "12/31/2016", "12/31/2017", "12/31/2018"]
     return [
-        returns_task("fin-pp-001", 11, "Cedar Systems Inc.", "Nasdaq composite", "S&P 400 information technology", d6, 5,
-                     "CDNS/2015/page_30.pdf-3", "Index values start at 100, so return = value - 100; the difference is in points, and a ratio of values gives a different number."),
-        returns_task("fin-pp-002", 12, "Meridian Freight Inc.", "Dow Jones transportation average", "S&P 500 index", d6, 3,
-                     "UPS/2012/page_32.pdf-2", "The question asks about an earlier column than the last, and a third series is a distractor."),
-        coal_share("fin-lk-001", 21, "UNP/2016/page_52.pdf-3"),
-        mortgage_share("fin-lk-002", 22, "PNC/2009/page_41.pdf-4"),
-        tax_rollforward("fin-ms-001", 31, "BLK/2012/page_160.pdf-2"),
-        amortization("fin-ms-002", 32, "HUM/2017/page_118.pdf-3"),
-        debt_36("fin-un-001", 41, "ETR/2013/page_118.pdf-2"),
-        debt_24_mixed("fin-un-002", 42, "ETR/2013/page_118.pdf-2 (plus a text amount in a different unit)"),
+        subperiod_returns("fin-pp-001", 11),
+        annualized_returns("fin-pp-002", 12),
+        of_which_rows("fin-lk-001", 21),
+        restated_line("fin-lk-002", 22),
+        derived_missing_cell("fin-ms-001", 31),
+        fiscal_to_calendar("fin-ms-002", 32),
+        eps_mixed_units("fin-un-001", 41),
+        fx_average_rate("fin-un-002", 42),
     ]
 
 
