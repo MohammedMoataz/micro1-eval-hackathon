@@ -2,6 +2,18 @@
 
 Entry for the micro1 Eval Hackathon. A small, reproducible eval that checks whether a model can **recall an arbitrary local lookup table** or just guesses fluently, asked in English and in Arabic.
 
+## Short description
+
+An English + Arabic eval of whether a model recalls the arbitrary province-code table inside the 14-digit Egyptian national ID or only guesses fluently: 10 tasks (20 rows), a deterministic grader with 37 offline tests, run on two free-tier models. `nvidia/nemotron-3-ultra-550b-a55b:free` named the right governorate in 4 of 23 graded attempts while passing all 16 control attempts, and once cited an "official CAPMAS/Ministry of Interior coding" for a wrong answer; `gemini-3.5-flash` passed 20 of 20. This is a capability gradient between two models, not a frontier-model failure, and the tasks were kept after probing (selection effect).
+
+## Video walkthrough
+
+VIDEO LINK: (add before submitting)
+
+## Domain and expertise
+
+AUTHOR EXPERTISE: (add before submitting: why you can judge Egyptian ID codes and Arabic governorate names)
+
 ## The eval
 
 - **What it tests:** the 14-digit Egyptian national ID has a 2-digit province code (digits 8-9) that maps to a governorate (13 = Sharqia, 25 = Asyut, 32 = New Valley, ...). The table has no rule to derive it. Each of 10 tasks is written in English and in Arabic (20 rows).
@@ -13,17 +25,36 @@ Entry for the micro1 Eval Hackathon. A small, reproducible eval that checks whet
 
 ## Results (what we actually have)
 
-| Model | Run | ID-to-governorate | Controls |
-|---|---|---|---|
-| Nemotron 3 Ultra (free) | 2 trials, temp 0, 39 graded | **4 / 23** (English 1/11, Arabic 3/12) | 16 / 16 |
-| Gemini 3.5 Flash (free key) | 1 trial, temp 0, 20 / 20 graded, no errors | **12 / 12** | 8 / 8 |
+All runs 2026-11-08, temperature 0, free tiers (cost $0).
+
+| Model ID | Run | ID-to-governorate | Controls | Raw outputs |
+|---|---|---|---|---|
+| `nvidia/nemotron-3-ultra-550b-a55b:free` (OpenRouter) | 2 trials, 39 of 40 graded (1 timeout), 1804 s | **4 / 23** (English 1/11, Arabic 3/12) | 16 / 16 | `results/nemotron-3-ultra__2026-11-08/` |
+| `gemini-3.5-flash` (Google free key) | 1 trial, 20 of 20 graded, 179 s | **12 / 12** | 8 / 8 | `results/gemini-3.5-flash__2026-11-08/` |
+
+Full metrics (bootstrap CI, pass@k, pass^k, task-by-model grid): `results/REPORT.md`.
 
 Read `docs/failure_analysis.md` before quoting any number. In short:
 
 - Nemotron's 19 gov failures are all real wrong governorates (no grader misses); several are stable (code 25 answered Matrouh 4 of 4).
-- It passes the reverse lookup, so it holds the table in one direction only.
+- It decodes common codes (Cairo 01 and Giza 21 in the counting control) and recalls Qena = 27, but fails six less common codes. No code was tested in both directions, so this is not evidence of a one-way memory.
+- 4 of 6 gov tasks passed in one temperature-0 trial and failed in the other.
 - Gemini 3.5 Flash passed every row (one trial), so the eval shows a **capability gradient** between two models, not a failure of the stronger one.
 - **Honest limits:** this separates a weaker free model from a stronger one; it does **not** show that frontier models fail. The 6 gov tasks were kept because Nemotron failed them in exploration (selection effect), so the pass rate is not general Egyptian-knowledge accuracy. The answer key comes from secondary sources (English Wikipedia, matches django-localflavor), not an official table. The Arabic-versus-English difference is within noise; we claim no language gap.
+
+### Representative transcripts
+
+Nemotron, `eg-gov-02-en` (ID `27304172558692`, code 25, correct answer Asyut), trial 1, final lines verbatim:
+
+> The governorate code **25** corresponds to **Matrouh** (also spelled Matruh) according to the official CAPMAS/Ministry of Interior coding used in national IDs.
+>
+> ANSWER: Matrouh
+
+Gemini 3.5 Flash passed every row; its full outputs are in `results/gemini-3.5-flash__2026-11-08/raw.jsonl`.
+
+### Hot take
+
+Asked for a table it does not hold, the model does not hedge. For code 25 it gave the same wrong governorate in all 4 attempts (Matrouh), and in one transcript it cites an "official" source for that answer. It lays out the whole ID digit by digit before the wrong lookup, so the layout knowledge makes the guess look trustworthy.
 
 ## Run it
 
@@ -62,4 +93,6 @@ results/                runs and REPORT.md
 
 - MultiLoKo (Meta, MIT): multilingual local-knowledge benchmark. Idea borrowed (local question in local language and in English); no data or questions copied.
 - ID layout and province codes: English Wikipedia "Egyptian National Identity Card" (CC BY-SA 4.0). All ID numbers in the tasks are invented.
-- Tooling: built with Claude Code assistance.
+## AI use
+
+Built with Claude Code assistance (task generator, grader, runner, report, docs). HUMAN REVIEW: (add before submitting: what you checked yourself, e.g. every task, answer-key entry and grading rule, and the 19 failure transcripts)

@@ -33,7 +33,7 @@ The 2-digit province code is an arbitrary lookup table with no rule to derive it
 
 1. Four of six tasks give a different result across two temperature-0 trials of the same prompt (gov-01, 04, 05 and 06 each pass once, fail once, in some language).
 2. Several wrong answers are neighbouring or similar-sounding governorates (Sharqia/Ismailia, North/South Sinai, Beni Suef/Fayoum).
-3. The reverse lookup (governorate to code, control `eg-code-01`) passed 4 of 4, so the model holds part of the table in one direction only.
+3. The controls that need the table passed: reverse lookup Qena = 27 (`eg-code-01`, 4 of 4) and forward decoding of Cairo 01 and Giza 21 (`eg-count-01`, 4 of 4). So the model holds common codes but not the six less common ones tested. No code was tested in both directions, so this does not show a one-way memory.
 
 This is a hypothesis. We did not inspect reasoning traces or run an ablation, so "guessing" is the simplest explanation, not a proven mechanism.
 
