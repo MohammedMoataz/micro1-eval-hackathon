@@ -1,189 +1,64 @@
-# micro1 Eval Hackathon
+# Egyptian national-ID lookup eval (English + Arabic)
 
-Solo entry for the [micro1 Eval Hackathon](https://www.micro1.ai/hackathon/faq): build a rigorous, reproducible **eval** (tasks + grader) that shows something frontier AI models still cannot do.
+Entry for the micro1 Eval Hackathon. A small, reproducible eval that checks whether a model can **recall an arbitrary local lookup table** or just guesses fluently, asked in English and in Arabic.
 
-> Status: eval topic not chosen yet. Fill the `TODO` markers once it is.
+## The eval
 
-## Deadline
+- **What it tests:** the 14-digit Egyptian national ID has a 2-digit province code (digits 8-9) that maps to a governorate (13 = Sharqia, 25 = Asyut, 32 = New Valley, ...). The table has no rule to derive it. Each of 10 tasks is written in English and in Arabic (20 rows).
+  - 6 tasks: given an invented ID, name the governorate of birth.
+  - 4 controls: reverse lookup (governorate to code), counting IDs from three governorates, code 88 (born abroad), a landline area code.
+- **Who it is for:** people building or choosing models for Arabic-language or Egypt-facing products (ID checks, KYC, forms) who need to know whether a model can be trusted to decode local identifiers.
+- **Why it matters:** a model that confidently names the wrong governorate from an ID digit pair passes for a model that knows. The failure is silent. MultiLoKo (Meta, MIT licence) motivates asking local-knowledge questions in the local language and in English; no MultiLoKo data is used.
+- **Grading:** deterministic. The last `ANSWER: ...` line must equal an accepted spelling (`answer_set`) or be one number (`numeric`). Hedged answers ("Ismailia, not Sharqia") fail. `tests/test_grader.py` shows what is accepted and rejected.
 
-Submissions close **Mon 9 Nov 2026, 07:15 Cairo time** (05:15 GMT). Resubmitting is allowed until then; only the latest complete submission counts. Winners are announced 23 Nov 2026.
+## Results (what we actually have)
 
-## What to submit (via the HackerRank event page)
+| Model | Run | ID-to-governorate | Controls |
+|---|---|---|---|
+| Nemotron 3 Ultra (free) | 2 trials, temp 0, 39 graded | **4 / 23** (English 1/11, Arabic 3/12) | 16 / 16 |
+| Gemini 3.5 Flash (free key) | final run pending (free quota exhausted); exploration probe, 1 trial | passed all in the probe | passed |
 
-| # | Item | Limits |
-|---|------|--------|
-| 1 | Eval as a **ZIP**, code only | max 50 MB, includes README, no keys, no video |
-| 2 | **Video** walkthrough link | max 5 min, opens without permission |
-| 3 | Short **description** | what was built, what it shows about model limits |
+Read `docs/failure_analysis.md` before quoting any number. In short:
 
-## What judges look for
+- Nemotron's 19 gov failures are all real wrong governorates (no grader misses); several are stable (code 25 answered Matrouh 4 of 4).
+- It passes the reverse lookup, so it holds the table in one direction only.
+- **Honest limits:** this separates a weaker free model from a stronger one; it does **not** show that frontier models fail. The 6 gov tasks were kept because Nemotron failed them in exploration (selection effect), so the pass rate is not general Egyptian-knowledge accuracy. The answer key comes from secondary sources (English Wikipedia, matches django-localflavor), not an official table. The Arabic-versus-English difference is within noise; we claim no language gap.
 
-- A real limitation that matters in practice, not a trick question.
-- 5 to 10 clear tasks, each with a defensible correct answer.
-- A reliable grader: no false passes, no false fails.
-- Frontier models fail for a reason you can explain.
-- Reproducible in a clean environment, original, public or synthetic data only.
-
-## The eval (TODO)
-
-- **What it tests:** TODO
-- **Who it is for:** TODO
-- **Why it matters:** TODO
-
-## Run it (TODO: verify from a clean clone)
+## Run it
 
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env                                  # add your own OPENROUTER_API_KEY
-python -m evalkit.run --model <model-id> --out results/<run-name> --trials 5 --temperature 0.7
-python -m evalkit.report results/<run-a> results/<run-b> --out results/REPORT.md
+cp .env.example .env                                  # add OPENROUTER_API_KEY (and/or GEMINI_API_KEY for gemini-* ids)
+python -m evalkit.run --model nvidia/nemotron-3-ultra-550b-a55b:free --out results/nemotron --trials 2 --temperature 0
+python -m evalkit.report results/nemotron --out results/REPORT.md
+python -m pytest -q                                   # grader and task-file tests, offline
 ```
 
-`--trials` defaults to 3. At temperature 0 most providers return nearly identical answers, so trials measure little; use a temperature above 0 (for example 0.7) to measure consistency, and record it.
+- Python 3.11, standard library only for the eval itself; `pytest` for tests.
+- `gemini-*` ids go to Google's endpoint with `GEMINI_API_KEY`; everything else goes to OpenRouter.
+- Cost: free tiers only. Runtime: about 30 minutes for 40 requests on the free Nemotron endpoint.
+- Free quotas are small: OpenRouter free models allow 50 requests a day, and Gemini's free key allows 20 a day, which is one trial of this set. Requests that fail with 429 or a timeout are recorded as errors and excluded from scores, never counted as wrong.
+- `scripts/make_tasks.py` regenerates `data/tasks.jsonl` (fixed seeds); a test fails if they disagree.
+- Raw outputs for the runs behind the claims are in `results/`; `results/_exploration/` holds the 15-candidate probes used to pick tasks.
 
 ### Metrics reported
 
-| Metric | Meaning |
-|--------|---------|
-| Pass rate | Graded attempts that are correct, with a 95% bootstrap CI that resamples tasks (trials of one task are not independent) |
-| pass@k | Share of tasks where at least one of k trials is correct |
-| pass^k | Share of tasks where all k trials are correct (consistency) |
-| Accuracy by trap type | Pass rate per `metadata.trap` value, as a model x trap table |
-| Passes per task | task x model grid such as `2/5`, for spotting tasks nobody passes (bad task or bad gold answer) |
-| API errors | Failed calls are recorded and excluded from scores, never counted as wrong answers |
-| Runtime | Seconds of API time per run. Tokens and dollar cost are not recorded; note them by hand from the provider dashboard |
+Pass rate with a 95% bootstrap CI over tasks, pass@k, pass^k, accuracy by trap type, a task-by-model grid, API errors and runtime.
 
-Every task needs `metadata.trap`, the specific pitfall it tests (for example `units`, `pct-vs-points`, `multi-step`). Write the hypothesis per trap in the README before running, then let the by-trap table confirm or refute it.
-
-Approximate runtime: TODO. Approximate cost per model: TODO. Expected headline results: see `results/`.
-
-## Folder structure
-
-Keep the repo small and flat. Everything a judge needs is reachable from this README.
+## Layout
 
 ```
-.
-├── README.md              # this file; the first thing judges read
-├── requirements.txt       # pinned versions (or pyproject.toml + uv.lock)
-├── .env.example           # variable names only, never real keys
-├── .gitignore             # .env, .venv, __pycache__, raw model outputs not worth shipping
-├── data/
-│   ├── tasks.jsonl        # one task per line: id, prompt, expected answer/rubric, metadata
-│   └── README.md          # source, licence, how synthetic data was generated
-├── evalkit/               # the code, as a package
-│   ├── run.py             # load tasks -> call model -> save raw outputs
-│   ├── models.py          # one thin client (OpenAI-compatible, e.g. OpenRouter)
-│   ├── grader.py          # scoring logic, deterministic where possible
-│   └── report.py          # results -> table / summary
-├── tests/
-│   ├── test_grader.py     # known-good answers pass, known-bad answers fail
-│   ├── test_run.py        # offline pipeline: trials, error handling
-│   ├── test_report.py     # metric values checked on known data
-│   └── test_tasks.py      # schema check, unique ids, no duplicate prompts
-├── results/               # small result files for the headline claims (json/csv/md)
-│   └── <model>__<date>/
-├── docs/
-│   └── failure_analysis.md  # where and why models fail, with examples
-└── scripts/               # helpers
-    └── make_zip.py        # builds dist/eval.zip, fails if over 50 MB
+data/tasks.jsonl        20 rows (10 tasks x en/ar); data/README.md has sources and the selection effect
+evalkit/                run.py, models.py, grader.py, report.py
+scripts/make_tasks.py   task generator; scripts/make_zip.py builds the submission ZIP
+tests/                  grader, runner, report, task-file tests
+docs/failure_analysis.md  failure classification and what we do not know
+results/                runs and REPORT.md
 ```
 
-### Conventions
+## Prior art and disclosure
 
-- **Tasks are data, not code.** `data/tasks.jsonl` holds every task so the grader and the tasks can change independently.
-- **Grader is tested.** Run `pytest` before every submission. A grader that cannot reject a wrong answer is the most common eval bug.
-- **Deterministic runs.** Temperature 0 and fixed seeds where the provider allows it. Record model id, date and parameters next to each result.
-- **Raw outputs are kept** for the runs behind your claims, so judges can check scoring without paying for model calls.
-- **No secrets.** Keys come from environment variables only. Check `git log` and the ZIP before submitting.
-- **Large files stay out.** The ZIP limit is 50 MB. Host big data elsewhere and link it here with fetch instructions.
-- **One command to run, one to report.** Anything more and a judge may give up.
-
-## Delivery plan
-
-Deadline is Mon 9 Nov 2026, 07:15 Cairo. **Plan: finish and submit everything today (Sat 7 Nov).** Sun 8 Nov is the safety buffer and resubmitting is allowed until the deadline.
-
-Suggested time blocks for today:
-
-| Block | Steps |
-|-------|-------|
-| 1. Setup and idea | 1 to 2 |
-| 2. Tasks, grader, runner | 3 to 5 |
-| 3. Model runs and failure check | 6 to 7 |
-| 4. Docs and clean-room test | 8 to 9 |
-| 5. Video, ZIP, submit | 10 to 13 |
-
-Cut scope, not steps: 5 solid tasks beat 10 shaky ones.
-
-**Steps**
-1. **Read the Instructions tab** on HackerRank: format, rubric, reference examples, and what Q1 (upload) and Q2 (subjective) ask. This decides the folder layout.
-2. **Pick one narrow topic** in a domain you know, where frontier models really fail. Not a trick question. Write the idea in 2 lines and check it has a clear correct answer.
-3. **Draft 5 to 10 tasks** in `data/tasks.jsonl` (id, prompt, expected answer or rubric, metadata). Public or synthetic data only.
-4. **Build the grader.** Prefer deterministic checks. Add `tests/test_grader.py` with known-good and known-bad answers, and confirm wrong answers are rejected.
-5. **Write the runner.** Load tasks, call the model through an OpenAI-compatible client (OpenRouter), save raw outputs. Temperature 0, record model id and date.
-
-6. **Run on models.** Free model first to debug, then at least one frontier model. API cost is yours.
-7. **Check the failures.** Confirm models fail for the intended reason, not a bad task or grader. Fix and rerun if not. Write `docs/failure_analysis.md` with examples.
-8. **Finish this README.** Fill every `TODO`: what it tests, who it is for, why it matters, run commands, runtime, cost, expected results.
-9. **Clean-room test.** Clone into a fresh folder, new venv, follow only the README. Fix whatever breaks.
-10. **Record the video** (5 min max): problem, how it works, how it is graded, what it reveals. Upload to YouTube, Drive, Loom or Vimeo. Open the link in an incognito window and check the audio.
-11. **Build the ZIP.** Code only, under 50 MB, no `.env`, keys, videos or `.venv`. Open it and scan for secrets.
-
-12. **Upload the ZIP**, paste the video link, fill in the short description. Run the checklist below.
-13. **Click Submit only after everything is uploaded.** It is final.
-
-Resubmitting before the deadline is allowed; only the latest complete submission counts. Questions: hackathon@micro1.ai.
-
-## Suggested skills and tools
-
-This is an eval-design task, not model training. Heavy ML skills matter only if the chosen domain needs them.
-
-**Core skills**
-- Task design: unambiguous prompts, one defensible answer, difficulty that frontier models fail for a real reason.
-- Grader design: exact match, programmatic checks, or rubric/LLM judge. Test the grader on known-good and known-bad answers.
-- Dataset handling: plain JSON/JSONL/CSV, versioned, public or synthetic, checked for duplicates and answer leakage.
-- Reproducibility: pinned dependencies, fixed seeds, temperature 0, one-command run, expected results documented.
-- Writing: a clear README and a 5-minute video that explain the failure.
-
-**Tools to install** (suggestions from general knowledge, not verified against current docs)
-- Python 3 with `uv` or `venv` for a pinned environment.
-- `pandas` or `polars` to build and check the task dataset; `pytest` for the grader tests.
-- An OpenAI-compatible client pointed at OpenRouter to run many models with one key.
-- Optional: `inspect-ai` as an eval framework. The FAQ does not require any framework; plain scripts are fine.
-- Only if the domain needs them: `scikit-learn`, PyTorch, Hugging Face `datasets`.
-
-**Project Claude Code skills** (in `.claude/skills/`, loaded automatically in this repo, excluded from the ZIP)
-
-| Skill | Delivery steps | Built from |
-|-------|----------------|------------|
-| `eval-topic-research` | 1-2: pick and validate the topic, prior-art check | sanjay3290/deep-research + Anjos2/recursive-research |
-| `eval-task-design` | 3-4: tasks, grader choice, grader tests | README core skills |
-| `eval-data-audit` | 3, 6-7: `audit.py` checks tasks and results | coffeefuelbump/csv-data-summarizer |
-| `eval-failure-analysis` | 7: classify every failure, write `docs/failure_analysis.md` | recursive-research "no self-confirmation" |
-| `eval-submission` | 8-13: README, clean-room, secrets, ZIP, video, submit | README checklist |
-| `ml-domain-tasks` | only if the topic is ML | the three community skills below |
-
-**Community Claude Code skills** (unvetted, small install counts; read the SKILL.md before installing; the useful parts are distilled into `ml-domain-tasks`)
-- [ml-model-training](https://claudemarketplaces.com/skills/secondsky/claude-skills/ml-model-training): scikit-learn, PyTorch, TensorFlow pipelines.
-- [pytorch](https://claudemarketplaces.com/skills/mindrally/skills/pytorch): nn.Module patterns, mixed precision.
-- [ml-expert](https://claudemarketplaces.com/skills/personamanagmentlayer/pcl/ml-expert): boilerplate templates.
-- Marketplace: [mcpmarket data-science-ml](https://mcpmarket.com/tools/skills/categories/data-science-ml).
-
-**Reading**
-- [Making LLM Evaluation Reproducible in Python](https://pretalx.com/euroscipy-2026/talk/FT7JQV/)
-- [LLM eval libraries 2026](https://futureagi.com/blog/best-llm-eval-libraries-2026) (vendor blog, treat rankings with caution)
-
-## Pre-submission checklist
-
-- [ ] ZIP opens and is under 50 MB
-- [ ] README runs end to end from a clean clone
-- [ ] `pytest` passes
-- [ ] No API keys, passwords or private data anywhere
-- [ ] Results shown for at least one frontier model, with failure analysis
-- [ ] Video link opens without permission and plays with audio
-- [ ] Description filled in
-- [ ] Earlier work or existing benchmarks disclosed, if any
-
-## Contact
-
-Organizers: hackathon@micro1.ai
+- MultiLoKo (Meta, MIT): multilingual local-knowledge benchmark. Idea borrowed (local question in local language and in English); no data or questions copied.
+- ID layout and province codes: English Wikipedia "Egyptian National Identity Card" (CC BY-SA 4.0). All ID numbers in the tasks are invented.
+- Tooling: built with Claude Code assistance.

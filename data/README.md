@@ -1,22 +1,38 @@
 # Data
 
-`tasks.jsonl`: one task per line. Do not edit it by hand: `python scripts/make_tasks.py` regenerates it and `tests/test_tasks.py` fails if the file and the generator disagree.
+`tasks.jsonl`: 20 rows = **10 tasks, each written in English and in Arabic** (`id` ends in `-en` / `-ar`; both rows share `metadata.pair` and have the same answer). Do not edit it by hand: `python scripts/make_tasks.py` regenerates it, and `tests/test_tasks.py` fails if the file and the generator disagree.
 
 | field | meaning |
 |-------|---------|
-| id | unique string |
-| prompt | text sent to the model: a report excerpt with a table, a question, and the answer-line format |
-| answer | reference answer as a string; its number of decimals sets the grading tolerance |
-| grader | `numeric` (reads the last `ANSWER: <number>` line), `exact` or `regex` (see `evalkit/grader.py`) |
-| metadata | `trap` (the pitfall tested: `pct-vs-points`, `lookup`, `multi-step`, `units`), `reference` (the calculation), `slip` (the wrong answer the trap produces; the grader must reject it), `source`, `why_hard` |
+| id | `eg-<family>-<nn>-<lang>` |
+| prompt | the question plus the answer-line format (`ANSWER: <answer>`) |
+| answer | reference answer. For `answer_set`: accepted variants joined by `\|` (spellings, with or without "Governorate"/"محافظة") |
+| grader | `answer_set` (names) or `numeric` (numbers); see `evalkit/grader.py` |
+| metadata | `lang`, `pair`, `trap` (`id-code` or `area-code`), `reference` (the derivation), `slip` (the plausible wrong answer; the grader must reject it), `source`, `why_hard` |
 
-## Where the tasks come from
+## What the tasks ask
 
-- **Structure**: six tasks keep the table shape of a FinQA record (`fin-ms-002` adds an original fiscal-year shift); two (`fin-un-001` EPS, `fin-un-002` FX translation) use original structures. FinQA source: (Chen et al., "FinQA: A Dataset of Numerical Reasoning over Financial Data", EMNLP 2021, https://arxiv.org/abs/2109.00122). Code and data: https://github.com/czyssrs/FinQA, MIT licence, copy in `data/FinQA_LICENSE.txt`. The FinQA files were downloaded at commit `0f16e28` into `data/raw/` (not shipped).
-- **Numbers and companies are invented.** Each task is generated with a fixed seed, so no FinQA text or figure appears and answers cannot be recalled from the original.
-- **Answers come from our own reference solution** in `scripts/make_tasks.py`, never from FinQA's labels. Reading the reports behind the first shortlist showed three FinQA gold answers that were wrong (for example, one multiplies shares by the fair value of a different row, and another treats a $411M increase as the base year), so FinQA labels are not trusted here.
-- `scripts/select_candidates.py` produced the shortlist of source records (at least 3 steps, only explained constants, gold answer matches its own program). A human then read every source report and rejected the unsound ones.
+All IDs are **invented**; a real person's ID is never used.
 
-## Output format
+| Family | Tasks | Question |
+|---|---|---|
+| ID to governorate | 6 | "Which governorate was the holder of this fictional national ID born in?" (province codes 13, 25, 32, 18, 34, 22) |
+| Code lookup | 1 | Which 2-digit code marks Qena in the national ID? (control) |
+| Counting | 1 | How many of 5 IDs were born in Cairo, Giza or Alexandria? (control) |
+| Born abroad | 1 | ID with code 88; answer a governorate name or "outside Egypt" (control; the prompt names the option) |
+| Area code | 1 | Landline area code of Damanhur (control) |
 
-Prompts ask the model to end with `ANSWER: <number>` and give the rounding. A reply without that line, or with two numbers on it, fails. This keeps formatting slips out of the reasoning score, and `tests/test_grader.py` shows what is accepted and rejected.
+## Where the facts come from
+
+- **Provincial codes** of the 14-digit Egyptian national ID: English Wikipedia, "Egyptian National Identity Card" (revision oldid=1377865466, CC BY-SA 4.0). It lists 27 governorate codes plus 88 for "outside the republic"; the code list matches the django-localflavor `eg` validator. This is a **secondary source**, not an official Civil Status Authority table. Arabic governorate names are the standard names.
+- **Area codes**: Wikipedia "Telephone numbers in Egypt" mirror and the dubai-online country-code page (secondary sources).
+- **ID layout** (century digit 2 = 1900s, 3 = 2000s; six digits date of birth; two digits province): same Wikipedia article.
+- Nothing is copied from MultiLoKo (Meta, MIT licence). Its idea of asking local-knowledge questions in the local language and in English, and of reporting the difference, is borrowed; its questions and data are not used.
+
+## How the tasks were chosen (selection effect)
+
+15 candidate tasks were first probed on two models (Nemotron Ultra and Gemini 3.5 Flash, 1 trial each; raw outputs in `results/_exploration/`). The final 10 keep all 6 ID-to-governorate tasks (the family where the models differed) and one task from each other family as a control (all solved). So the **pass rate on this set is not an estimate of general Egyptian-knowledge accuracy**; it measures the ID-code decoding weakness, with controls to show the models are otherwise fine.
+
+## Output format and grading
+
+Prompts ask the model to end with `ANSWER: <answer>`. Only the last such line is graded. `answer_set` passes only if the whole line equals an accepted variant after folding case, Arabic diacritics, alef variants, teh marbuta and punctuation. "Ismailia, not Sharqia" and hedged answers fail. `numeric` accepts exactly one number on the line. `tests/test_grader.py` shows what is accepted and rejected.

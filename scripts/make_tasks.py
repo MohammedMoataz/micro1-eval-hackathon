@@ -44,8 +44,8 @@ CODES = {
     "34": (["North Sinai"], ["شمال سيناء"]),
     "35": (["South Sinai"], ["جنوب سيناء"]),
 }
-ABROAD_EN = ["outside Egypt", "abroad", "born abroad", "outside the republic", "outside the country", "outside of Egypt"]
-ABROAD_AR = ["خارج مصر", "خارج الجمهورية", "بالخارج", "في الخارج", "خارج البلاد"]
+ABROAD_EN = ["outside Egypt", "abroad", "born abroad", "outside the republic", "outside the country", "outside of Egypt", "outside the Arab Republic of Egypt"]
+ABROAD_AR = ["خارج مصر", "خارج الجمهورية", "بالخارج", "في الخارج", "خارج البلاد", "خارج جمهورية مصر العربية", "خارج جمهورية مصر العرب"]
 # city -> (area code without leading 0, English accepted, Arabic city name)
 AREA = {"Tanta": ("40", "طنطا"), "Damanhur": ("45", "دمنهور"), "Sohag": ("93", "سوهاج"), "Beni Suef": ("82", "بني سويف")}
 
@@ -132,9 +132,9 @@ def abroad(pid, seed):
     rng = random.Random(seed)
     nid, _ = make_id(rng, "88")
     rows = {
-        "en": (f"This is a fictional Egyptian national ID number: {nid}. Where was the holder born? Answer in a few "
-               f"words.", "|".join(ABROAD_EN), "answer_set"),
-        "ar": (f"هذا رقم قومي مصري وهمي: {nid}. أين وُلد صاحبه؟ أجب في بضع كلمات.", "|".join(ABROAD_AR), "answer_set"),
+        "en": (f"This is a fictional Egyptian national ID number: {nid}. Give the place of birth: a governorate "
+               f"name, or the words 'outside Egypt'.", "|".join(ABROAD_EN), "answer_set"),
+        "ar": (f"هذا رقم قومي مصري وهمي: {nid}. أين وُلد صاحبه؟ اكتب اسم المحافظة، أو عبارة 'خارج مصر'.", "|".join(ABROAD_AR), "answer_set"),
     }
     return pair(pid, "id-code", f"province code 88 = outside the republic ({nid})", SRC_ID, "Cairo", rows)
 
@@ -149,6 +149,8 @@ def area(pid, city, slip):
 
 
 def build():
+    """10 tasks. Selected AFTER probing 15 candidates on two models: the 6 ID->governorate tasks (the family where
+    models differ) plus one control each from code lookup, counting, born-abroad and area codes (all solved)."""
     t = []
     t += gov_from_id("eg-gov-01", 101, "13", "19")   # Sharqia vs Ismailia
     t += gov_from_id("eg-gov-02", 102, "25", "26")   # Asyut vs Sohag
@@ -156,13 +158,10 @@ def build():
     t += gov_from_id("eg-gov-04", 104, "18", "16")   # Beheira vs Gharbia
     t += gov_from_id("eg-gov-05", 105, "34", "35")   # North vs South Sinai
     t += gov_from_id("eg-gov-06", 106, "22", "23")   # Beni Suef vs Fayoum
-    t += code_from_gov("eg-code-01", "27", "26")     # Qena
-    t += code_from_gov("eg-code-02", "23", "22")     # Fayoum
-    t += count_core("eg-count-01", 201, ["01", "21"], ["14", "17", "16"])
-    t += count_core("eg-count-02", 202, ["02"], ["19", "03", "04", "12"])
-    t += abroad("eg-abroad-01", 301)
-    for i, (city, slip) in enumerate([("Tanta", "45"), ("Damanhur", "40"), ("Sohag", "96"), ("Beni Suef", "84")], 1):
-        t += area(f"eg-area-0{i}", city, slip)
+    t += code_from_gov("eg-code-01", "27", "26")     # control: Qena
+    t += count_core("eg-count-01", 201, ["01", "21"], ["14", "17", "16"])  # control
+    t += abroad("eg-abroad-01", 301)                 # control: code 88
+    t += area("eg-area-01", "Damanhur", "40")        # control
     for x in t:
         assert x["answer"] not in x["prompt"] or x["grader"] == "numeric", x["id"]
     return t

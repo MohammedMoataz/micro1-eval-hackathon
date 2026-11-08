@@ -1,0 +1,6 @@
+{
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "date": "2026-11-08T00:32:08.239228+00:00",
+  "temperature": 0.0,
+  "trials": 2
+}

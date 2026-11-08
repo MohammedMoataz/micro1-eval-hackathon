@@ -140,6 +140,7 @@ if __name__ == "__main__":
     if a.selftest:
         selftest()
         sys.exit(0)
+    sys.stdout.reconfigure(encoding="utf-8")  # Arabic task text on a cp1252 Windows console
     text, bad = report(a.tasks, a.results)
     print(text)
     sys.exit(1 if bad else 0)
