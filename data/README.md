@@ -24,10 +24,10 @@ All IDs are **invented**; a real person's ID is never used.
 
 ## Where the facts come from
 
-- **Provincial codes** of the 14-digit Egyptian national ID: English Wikipedia, "Egyptian National Identity Card" (revision oldid=1377865466, CC BY-SA 4.0). It lists 27 governorate codes plus 88 for "outside the republic"; the code list matches the django-localflavor `eg` validator. This is a **secondary source**, not an official Civil Status Authority table. Arabic governorate names are the standard names.
-- **Area codes**: Wikipedia "Telephone numbers in Egypt" mirror and the dubai-online country-code page (secondary sources).
+- **Provincial codes** of the 14-digit Egyptian national ID: English Wikipedia, "Egyptian National Identity Card" (CC BY-SA 4.0), revision used: https://en.wikipedia.org/w/index.php?title=Egyptian_National_Identity_Card&oldid=1377865466. It lists 27 governorate codes plus 88 for "outside the republic"; the code list matches the django-localflavor `eg` validator (https://github.com/django/django-localflavor/blob/master/localflavor/eg/forms.py). This is a **secondary source**, not an official Civil Status Authority table. Arabic governorate names are the standard names.
+- **Area codes**: English Wikipedia, "Telephone numbers in Egypt" (secondary source), https://en.wikipedia.org/wiki/Telephone_numbers_in_Egypt. It lists Damanhur = 45, the reference answer. An earlier cross-check used a dubai-online country-code page whose URL was not recorded, so it is not cited.
 - **ID layout** (century digit 2 = 1900s, 3 = 2000s; six digits date of birth; two digits province): same Wikipedia article.
-- Nothing is copied from MultiLoKo (Meta, MIT licence). Its idea of asking local-knowledge questions in the local language and in English, and of reporting the difference, is borrowed; its questions and data are not used.
+- Nothing is copied from MultiLoKo (Meta, MIT licence; https://arxiv.org/abs/2504.10356, https://github.com/facebookresearch/multiloko). Its idea of asking local-knowledge questions in the local language and in English, and of reporting the difference, is borrowed; its questions and data are not used.
 
 ## How the tasks were chosen (selection effect)
 

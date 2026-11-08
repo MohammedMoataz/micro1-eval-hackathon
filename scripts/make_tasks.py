@@ -7,7 +7,10 @@ Meta, MIT; none of its data is used). Each task is one fact, written once per la
 Fact tables below are the answer key. Sources (see data/README.md):
   CODES  - provincial codes of the 14-digit Egyptian national ID, English Wikipedia "Egyptian National Identity
            Card" (secondary source; matches the django-localflavor list); names in Arabic are the standard ones.
-  AREA   - landline area codes, Wikipedia "Telephone numbers in Egypt" mirror / dubai-online (secondary).
+           https://en.wikipedia.org/w/index.php?title=Egyptian_National_Identity_Card&oldid=1377865466
+           https://github.com/django/django-localflavor/blob/master/localflavor/eg/forms.py
+  AREA   - landline area codes, English Wikipedia "Telephone numbers in Egypt" (secondary).
+           https://en.wikipedia.org/wiki/Telephone_numbers_in_Egypt
 Every ID number in a prompt is invented.
 """
 import datetime as dt

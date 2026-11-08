@@ -91,8 +91,9 @@ results/                runs and REPORT.md
 
 ## Prior art and disclosure
 
-- MultiLoKo (Meta, MIT): multilingual local-knowledge benchmark. Idea borrowed (local question in local language and in English); no data or questions copied.
-- ID layout and province codes: English Wikipedia "Egyptian National Identity Card" (CC BY-SA 4.0). All ID numbers in the tasks are invented.
+- MultiLoKo (Meta, MIT): multilingual local-knowledge benchmark. Idea borrowed (local question in local language and in English); no data or questions copied. Paper: Hupkes and Bogoychev, "MultiLoKo: a multilingual local knowledge benchmark for LLMs spanning 31 languages", https://arxiv.org/abs/2504.10356. Code: https://github.com/facebookresearch/multiloko
+- ID layout and province codes: English Wikipedia "Egyptian National Identity Card" (CC BY-SA 4.0), revision used: https://en.wikipedia.org/w/index.php?title=Egyptian_National_Identity_Card&oldid=1377865466. Cross-check: django-localflavor Egypt national-ID validator, https://github.com/django/django-localflavor/blob/master/localflavor/eg/forms.py. All ID numbers in the tasks are invented.
+- Landline area code (Damanhur = 45): English Wikipedia "Telephone numbers in Egypt", https://en.wikipedia.org/wiki/Telephone_numbers_in_Egypt.
 ## AI use
 
 Built with Claude Code assistance (task generator, grader, runner, report, docs). HUMAN REVIEW: (add before submitting: what you checked yourself, e.g. every task, answer-key entry and grading rule, and the 19 failure transcripts)
