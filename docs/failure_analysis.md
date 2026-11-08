@@ -1,7 +1,7 @@
 # Failure analysis
 
 Run analysed: `results/nemotron-3-ultra__2026-11-08` (Nemotron 3 Ultra, free tier, temperature 0, 2 trials, 40 requests; 39 graded, 1 timeout).
-Gemini 3.5 Flash has **no final run yet** (free quota exhausted at run time; a rerun is queued). See "What we do not know".
+Second run: `results/gemini-3.5-flash__2026-11-08` (Gemini 3.5 Flash, free key, temperature 0, 1 trial, 20 requests). **20 / 20 passed, 0 errors**: 12/12 on the ID-to-governorate rows (English and Arabic) and 8/8 on controls. A first attempt the same day returned HTTP 429 on all 20 rows (daily free quota used up by the exploration probe); it was discarded as invalid, not counted as a result, and rerun after the quota reset.
 
 ## Result
 
@@ -43,8 +43,8 @@ English 9 of 19 graded, Arabic 11 of 20 (all tasks). On the gov tasks alone, 1/1
 
 ## What we do not know
 
-- **Frontier models are not shown to fail.** In the exploration probes (1 trial each, `results/_exploration/`) Gemini 3.5 Flash passed every ID-to-governorate row we tried. The eval therefore separates a weaker free model from a stronger one; it does not show a limit of frontier models.
+- **Frontier models are not shown to fail.** Gemini 3.5 Flash passed every row in the final run and in the exploration probes (`results/_exploration/`). The eval therefore separates a weaker free model from a stronger one (4/23 against 12/12 on the gov rows); it does not show a limit of frontier models. We also did not test any other strong model, so "Gemini knows the table" is one data point with one trial.
 - **Selection effect.** The six gov tasks were kept because Nemotron failed them in exploration. The pass rate on this set is not an estimate of general Egyptian-knowledge accuracy. Controls were all solved by both models.
 - **Answer key is secondary-sourced.** Province codes come from English Wikipedia (matches the django-localflavor list), not an official Civil Status Authority table; area codes from secondary pages. A wrong key entry would turn real passes into false fails. Gov rows where the model answered consistently and wrongly (e.g. 25 -> Matrouh) fit the key, so the key looks right for those, but this is not independent verification.
-- **Small and uneven.** 6 gov tasks; Nemotron 2 trials; Gemini final run pending (1 trial at most, because its free tier allows 20 requests per day).
-- **One model measured at final settings.** The by-trap confidence interval (32% to 70% overall) is wide.
+- **Small and uneven.** 6 gov tasks; Nemotron 2 trials, Gemini 1 trial (its free tier allows 20 requests per day). Gemini's 100% interval is degenerate (all passed), not a guarantee.
+- **Wide intervals.** Nemotron overall 51.3% with 95% CI 32.4% to 70.0%.

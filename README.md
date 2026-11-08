@@ -16,12 +16,13 @@ Entry for the micro1 Eval Hackathon. A small, reproducible eval that checks whet
 | Model | Run | ID-to-governorate | Controls |
 |---|---|---|---|
 | Nemotron 3 Ultra (free) | 2 trials, temp 0, 39 graded | **4 / 23** (English 1/11, Arabic 3/12) | 16 / 16 |
-| Gemini 3.5 Flash (free key) | final run pending (free quota exhausted); exploration probe, 1 trial | passed all in the probe | passed |
+| Gemini 3.5 Flash (free key) | 1 trial, temp 0, 20 / 20 graded, no errors | **12 / 12** | 8 / 8 |
 
 Read `docs/failure_analysis.md` before quoting any number. In short:
 
 - Nemotron's 19 gov failures are all real wrong governorates (no grader misses); several are stable (code 25 answered Matrouh 4 of 4).
 - It passes the reverse lookup, so it holds the table in one direction only.
+- Gemini 3.5 Flash passed every row (one trial), so the eval shows a **capability gradient** between two models, not a failure of the stronger one.
 - **Honest limits:** this separates a weaker free model from a stronger one; it does **not** show that frontier models fail. The 6 gov tasks were kept because Nemotron failed them in exploration (selection effect), so the pass rate is not general Egyptian-knowledge accuracy. The answer key comes from secondary sources (English Wikipedia, matches django-localflavor), not an official table. The Arabic-versus-English difference is within noise; we claim no language gap.
 
 ## Run it
