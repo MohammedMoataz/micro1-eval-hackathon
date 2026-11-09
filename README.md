@@ -8,11 +8,11 @@ An English + Arabic eval of whether a model recalls the arbitrary province-code 
 
 ## Video walkthrough
 
-VIDEO LINK: (add before submitting)
+https://drive.google.com/file/d/10fmZ84oFKtNNjZ3sl_UTHn_yumadLQYm/view?usp=sharing
 
 ## Domain and expertise
 
-AUTHOR EXPERTISE: (add before submitting: why you can judge Egyptian ID codes and Arabic governorate names)
+I'm an Egyptian software engineer. I carry this ID, and I read the governorate names in Arabic and English, so I can judge the tasks, the answer key and the model answers in both languages.
 
 ## The eval
 
@@ -78,7 +78,7 @@ Read `docs/failure_analysis.md` before quoting any number. In short:
 - It decodes common codes (Cairo 01 and Giza 21 in the counting control) and recalls Qena = 27, but fails six less common codes. No code was tested in both directions, so this is not evidence of a one-way memory.
 - 4 of 6 gov tasks passed in one temperature-0 trial and failed in the other.
 - Gemini 3.5 Flash passed every row (one trial), so the eval shows a **capability gradient** between two models, not a failure of the stronger one.
-- **Honest limits:** this separates a weaker free model from a stronger one; it does **not** show that frontier models fail. The 6 gov tasks were kept because Nemotron failed them in exploration (selection effect), so the pass rate is not general Egyptian-knowledge accuracy. The answer key comes from secondary sources (English Wikipedia, matches django-localflavor), not an official table. The Arabic-versus-English difference is within noise; we claim no language gap.
+- **Honest limits:** this separates a weaker free model from a stronger one; it does **not** show that frontier models fail. The 6 gov tasks were kept because Nemotron failed them in exploration (selection effect), so the pass rate is not general Egyptian-knowledge accuracy. The answer key comes from secondary sources (English Wikipedia; its code list matches django-localflavor), not an official table. The Arabic-versus-English difference is within noise; we claim no language gap.
 
 ### Representative transcripts
 
@@ -147,9 +147,17 @@ results/                runs and REPORT.md
 **Built during the hackathon.** Everything in this repo (tasks, generator, grader, runner, report, tests, docs) was written during the event: the first commit is 2026-11-06 and the challenge opened 2026-10-30 (see `git log`). An earlier finance version of the tasks was dropped for this topic; it stays only in git history (tag `v0.1.0`). Nothing else pre-existing was reused apart from Python, pytest and the sources below.
 
 - MultiLoKo (Meta, MIT): multilingual local-knowledge benchmark. Idea borrowed (local question in local language and in English); no data or questions copied. Paper: Hupkes and Bogoychev, "MultiLoKo: a multilingual local knowledge benchmark for LLMs spanning 31 languages", https://arxiv.org/abs/2504.10356. Code: https://github.com/facebookresearch/multiloko
-- ID layout and province codes: English Wikipedia "Egyptian National Identity Card" (CC BY-SA 4.0), revision used: https://en.wikipedia.org/w/index.php?title=Egyptian_National_Identity_Card&oldid=1377865466. Cross-check: django-localflavor Egypt national-ID validator, https://github.com/django/django-localflavor/blob/master/localflavor/eg/forms.py. All ID numbers in the tasks are invented.
+- ID layout and province codes: English Wikipedia "Egyptian National Identity Card" (CC BY-SA 4.0), revision used: https://en.wikipedia.org/w/index.php?title=Egyptian_National_Identity_Card&oldid=1377865466. Cross-check of the code list (which codes exist, not their names): django-localflavor Egypt national-ID validator, https://github.com/django/django-localflavor/blob/master/localflavor/eg/forms.py. All ID numbers in the tasks are invented.
 - Landline area code (Damanhur = 45): English Wikipedia "Telephone numbers in Egypt", https://en.wikipedia.org/wiki/Telephone_numbers_in_Egypt.
 
 ## AI use
 
-Built with Claude Code assistance (task generator, grader, runner, report, docs). HUMAN REVIEW: (add before submitting: what you checked yourself, e.g. every task, answer-key entry and grading rule, and the 19 failure transcripts)
+Built with Claude Code assistance (task generator, grader, runner, report, docs). How the output was reviewed:
+
+- **By the author:** read every task in the task overview (question, reference answer, wrong answer, why it is hard) and confirmed it.
+- **Re-checked before submitting (with Claude Code, from the files in this repo):**
+  - Answer key: every code the tasks use (01, 13, 18, 21, 22, 25, 27, 32, 34, 88) maps to the same governorate in the pinned Wikipedia revision. django-localflavor confirms these are valid codes; it does not list names.
+  - Every ID inside a prompt carries the code its reference answer expects (digits 8-9).
+  - All 19 Nemotron governorate failures in `raw.jsonl`: the last `ANSWER:` line names a wrong governorate (Matrouh, Ismailia, Asyut, South Sinai, Fayoum, North Sinai, and once "غرب قنا", "West Qena", which is not a governorate). None is a grader false fail.
+  - `pytest -q`: 37 passed. Data audit: no blockers.
+  - Results tables match `python -m evalkit.report` run on the raw results.
